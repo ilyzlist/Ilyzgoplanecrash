@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { hauteurDuSol, hauteurDesObstacles, surLaPiste, PISTE } from './world.js';
 import { afficherMessage } from './ui.js';
+import { tactile, estTactile } from './touch.js';
 
 // --- Les touches du clavier ---
 const touches = {};
@@ -27,8 +28,19 @@ const appuye = {
   cabrer: () => touches.ArrowDown,
   plusDeGaz: () => touches.Space,
   moinsDeGaz: () => touches.ShiftLeft || touches.ShiftRight,
-  freins: () => touches.KeyF,
+  freins: () => touches.KeyF || tactile.freins,
 };
+
+// Tourner : clavier (← / →) ou manche tactile. Renvoie de -1 (droite) à +1 (gauche).
+function lireVirage() {
+  const clavier = (appuye.gauche() ? 1 : 0) - (appuye.droite() ? 1 : 0);
+  return clavier !== 0 ? clavier : tactile.virage;
+}
+// Monter / descendre : clavier (↓ / ↑) ou manche tactile. Renvoie de -1 (piquer) à +1 (monter).
+function lireMonter() {
+  const clavier = (appuye.cabrer() ? 1 : 0) - (appuye.piquer() ? 1 : 0);
+  return clavier !== 0 ? clavier : tactile.monter;
+}
 
 // ============================================================
 //  LE MODÈLE 3D
@@ -328,6 +340,7 @@ export function creerModele() {
   avion.add(roueAvant, carenageAvant, jambeAvant);
 
   avion.userData.pieces = pieces;
+  avion.scale.setScalar(CONFIG.tailleAvion); // la taille de l'avion se règle dans config.js
   return avion;
 }
 
@@ -388,7 +401,10 @@ export function creerAvion(scene, camera) {
     const z = PISTE.z + PISTE.longueur / 2 - 30;
     etat.position.set(PISTE.x, hauteurDuSol(PISTE.x, z) + CONFIG.hauteurRoues, z);
     etat.auSol = true;
-    afficherMessage(`Bienvenue à bord d'${CONFIG.nomAvion} ! Mets les gaz (touche 9 ou Espace), puis ↓ pour décoller`, 7);
+    // (on attend un instant que les commandes tactiles soient prêtes)
+    setTimeout(() => afficherMessage(estTactile()
+      ? `Bienvenue à bord d'${CONFIG.nomAvion} ! Monte la manette des gaz à droite, puis tire le manche vers le bas pour décoller`
+      : `Bienvenue à bord d'${CONFIG.nomAvion} ! Mets les gaz (touche 9 ou Espace), puis ↓ pour décoller`, 7), 0);
   } else {
     // En vol, face à la piste
     etat.position.set(PISTE.x, CONFIG.altitudeDepart, PISTE.z + PISTE.longueur / 2 + 400);
@@ -406,14 +422,14 @@ export function creerAvion(scene, camera) {
     etat.volets = appuye.freins();
 
     // 1) Pencher avec ← / → . Plus l'avion penche, plus il tourne (comme un vrai !)
-    virage = (appuye.gauche() ? 1 : 0) - (appuye.droite() ? 1 : 0);
+    virage = lireVirage();
     if (virage !== 0) etat.inclinaison += virage * CONFIG.vitesseRoulis * dt;
     else etat.inclinaison -= etat.inclinaison * Math.min(1, dt * CONFIG.retourHorizontal);
     etat.inclinaison = THREE.MathUtils.clamp(etat.inclinaison, -CONFIG.inclinaisonMax, CONFIG.inclinaisonMax);
     etat.cap += Math.sin(etat.inclinaison) * CONFIG.vitesseVirage * dt;
 
     // 2) Piquer (↑) / cabrer (↓), comme un vrai manche
-    monter = (appuye.cabrer() ? 1 : 0) - (appuye.piquer() ? 1 : 0);
+    monter = lireMonter();
     etat.tangage += monter * CONFIG.vitesseTangage * dt;
     if (monter === 0) etat.tangage -= etat.tangage * Math.min(1, dt * CONFIG.retourHorizontal);
 
@@ -459,7 +475,9 @@ export function creerAvion(scene, camera) {
           etat.inclinaison = 0;
           etat.decroche = false;
           etat.atterrissages++;
-          afficherMessage('Bravo, atterrissage réussi ! 🛬  Coupe les gaz (0) et freine avec F', 4);
+          afficherMessage(estTactile()
+            ? 'Bravo, atterrissage réussi ! 🛬  Baisse les gaz et appuie sur FREIN'
+            : 'Bravo, atterrissage réussi ! 🛬  Coupe les gaz (0) et freine avec F', 4);
           return;
         }
         afficherMessage(assezLent
@@ -489,8 +507,8 @@ export function creerAvion(scene, camera) {
     etat.freins = appuye.freins();
 
     // Tourner avec ← / → (seulement si on roule)
-    virage = (appuye.gauche() ? 1 : 0) - (appuye.droite() ? 1 : 0);
-    monter = appuye.cabrer() ? 1 : 0;
+    virage = lireVirage();
+    monter = Math.max(lireMonter(), 0);
     etat.cap += virage * CONFIG.vitesseVirageSol * dt * Math.min(1, etat.vitesse / 8);
 
     // La vitesse : les gaz poussent, les roues freinent un peu, F freine fort
@@ -505,13 +523,13 @@ export function creerAvion(scene, camera) {
     const sol = hauteurDuSol(x, z);
     if (sol < 0.5 || hauteurDesObstacles(x, z) > sol + 1) {
       etat.vitesse = 0;
-      afficherMessage('Stop ! Fais demi-tour avec ← ou →', 2);
+      afficherMessage('Stop ! Fais demi-tour', 2);
     } else {
       etat.position.set(x, sol + CONFIG.hauteurRoues, z);
     }
 
     // Décoller : tirer sur le manche (↓) quand on va assez vite
-    if (appuye.cabrer()) {
+    if (monter > 0.5) {
       if (etat.vitesse >= CONFIG.vitesseDecollage) {
         etat.auSol = false;
         etat.tangage = 0.12;
@@ -531,6 +549,11 @@ export function creerAvion(scene, camera) {
     if (gazDemande !== null) {
       etat.gaz = gazDemande;
       gazDemande = null;
+    }
+    // … ou la manette des gaz sur l'écran tactile
+    if (tactile.gaz !== null) {
+      etat.gaz = tactile.gaz;
+      tactile.gaz = null;
     }
     if (appuye.plusDeGaz()) etat.gaz += CONFIG.vitesseManette * dt;
     if (appuye.moinsDeGaz()) etat.gaz -= CONFIG.vitesseManette * dt;
@@ -552,7 +575,8 @@ export function creerAvion(scene, camera) {
     const loin = Math.min(etat.hauteurSol / 150, 1);
     ombre.position.set(x, sol + 0.2, z);
     ombre.rotation.set(-Math.PI / 2, 0, etat.cap);
-    ombre.scale.set(5.5 * (1 - loin * 0.5), 4.5 * (1 - loin * 0.5), 1);
+    const tailleOmbre = CONFIG.tailleAvion * (1 - loin * 0.5);
+    ombre.scale.set(5.5 * tailleOmbre, 4.5 * tailleOmbre, 1);
     ombre.material.opacity = 0.35 * (1 - loin * 0.8);
 
     // La caméra suit derrière et au-dessus de l'avion

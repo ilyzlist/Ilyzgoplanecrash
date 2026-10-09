@@ -10,6 +10,7 @@
 export const CONFIG = {
   // --- L'avion ---
   nomAvion: 'ILYZGO AIR',   // le nom peint sur l'avion
+  tailleAvion: 1.5,         // 1 = petit avion, 1.5 = plus grand, 2 = très grand
 
   // --- Le départ ---
   departSurLaPiste: true,   // true = on commence posé sur la piste, false = en plein vol
@@ -39,15 +40,15 @@ export const CONFIG = {
   vitesseDecollage: 24,       // vitesse pour décoller (↓ quand on roule sur la piste) → 86 km/h
   vitesseVirageSol: 0.8,      // pour tourner quand on roule au sol
   freinage: 12,               // force des freins (F quand on est au sol)
-  hauteurRoues: 1.85,         // distance entre le centre de l'avion et le bas des roues
   pentePAPI: 4.5,             // la bonne pente d'approche (en degrés) montrée par les lumières PAPI
 
   // --- La caméra ---
-  cameraDistance: 22,     // distance derrière l'avion
-  cameraHauteur: 7,       // hauteur au-dessus de l'avion
+  cameraDistance: 30,     // distance derrière l'avion
+  cameraHauteur: 9,       // hauteur au-dessus de l'avion
   cameraSouplesse: 4,     // plus c'est grand, plus la caméra suit vite
 
   // --- L'île ---
+  nomIle: 'ILYZGO COUNTRY', // écrit sur le grand panneau et en grosses lettres sur la montagne
   nombreMaisons: 8,       // nombre de maisons dans le village (30 au maximum)
   nombreArbres: 80,       // nombre d'arbres sur l'île
   tailleMonde: 3000,      // taille de la mer
@@ -65,3 +66,6 @@ export const CONFIG = {
   couleursMurs: [0xfff3d6, 0xffd6e0, 0xd6f0ff, 0xe8ffd6, 0xffe9b3],
   couleursToits: [0xd9534f, 0x3b7dd8, 0x8e5a3c, 0x2e8b57],
 };
+
+// Calculé tout seul (ne pas toucher) : la hauteur des roues dépend de la taille de l'avion
+CONFIG.hauteurRoues = 1.85 * CONFIG.tailleAvion;

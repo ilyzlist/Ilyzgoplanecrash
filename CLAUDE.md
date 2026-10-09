@@ -35,6 +35,10 @@ Jeu de vol en 3D dans le navigateur. On pilote un petit avion au-dessus d'un arc
 | F | Freins au sol, volets en vol |
 | M | Ouvrir le carnet de bord |
 
+**Sur téléphone et tablette** (`src/touch.js`) : un manche à gauche (piquer / monter / pencher), une manette des gaz à droite, un bouton FREIN (VOLETS en vol). Les commandes sont semi-transparentes et ne doivent jamais cacher le jeu. Le clavier doit toujours marcher en même temps.
+
+L'île s'appelle **ILYZGO COUNTRY** (panneau de bienvenue près de la piste + grosses lettres sur la montagne).
+
 L'avion du joueur s'appelle **ILYZGO AIR** (nom peint sur le fuselage, réglable dans `config.js`). Les vitesses s'affichent en km/h (vitesse du jeu × 3,6).
 
 La physique est **un peu réaliste mais sans danger** : on tourne en penchant l'avion, Espace/Shift règlent une manette des gaz (qui reste en place), la gravité et la portance comptent, et l'avion peut décrocher s'il est trop lent. Mais il ne peut jamais s'écraser : s'il touche le sol ou l'eau ailleurs que sur la piste, il rebondit doucement vers le haut.
@@ -81,4 +85,4 @@ src/
 - Faire une étape à la fois et vérifier que le jeu se lance avant de passer à la suivante.
 
 ## Hors périmètre (pour plus tard)
-Multijoueur, plusieurs avions à choisir, manette, version mobile, sauvegarde.
+Multijoueur, plusieurs avions à choisir, manette de jeu, sauvegarde.

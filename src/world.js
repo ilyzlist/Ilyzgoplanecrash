@@ -17,6 +17,8 @@ export const PARKING = { x0: 90, x1: 160, z0: -585, z1: -495 };
 export const VILLAGE = { x: -210, z: -450, rayon: 95 };
 // La tour de contrôle, à côté du parking
 export const TOUR = { x: 75, z: -470 };
+// Le grand panneau de bienvenue, à gauche du début de la piste
+const PANNEAU = { x: -80, z: -320 };
 
 // Les zones où le terrain est tout plat
 const ZONE_PISTE = {
@@ -367,6 +369,113 @@ function creerMancheAAir(x, z) {
   return groupe;
 }
 
+// ---------- Le grand panneau "Bienvenue à ILYZGO COUNTRY" ----------
+function creerPanneauBienvenue() {
+  const groupe = new THREE.Group();
+  const largeur = 36;
+  const hauteur = 11;
+  const hauteurPoteaux = 6;
+
+  // L'image du panneau : un ciel bleu, une mer, et le nom de l'île
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 312;
+  const g = canvas.getContext('2d');
+  const degrade = g.createLinearGradient(0, 0, 0, 312);
+  degrade.addColorStop(0, '#2b7de9');
+  degrade.addColorStop(0.75, '#5ec8ff');
+  degrade.addColorStop(0.75, '#f4dc8a');
+  degrade.addColorStop(1, '#f4dc8a');
+  g.fillStyle = degrade;
+  g.fillRect(0, 0, 1024, 312);
+  g.strokeStyle = '#ffffff';
+  g.lineWidth = 14;
+  g.strokeRect(7, 7, 1010, 298);
+  // Un petit soleil
+  g.fillStyle = '#ffd400';
+  g.beginPath();
+  g.arc(930, 70, 38, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#ffffff';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.font = 'bold 50px Arial, sans-serif';
+  g.fillText('Bienvenue à', 512, 62);
+  g.font = 'bold 120px "Arial Black", Arial, sans-serif';
+  g.lineWidth = 10;
+  g.strokeStyle = '#16324f';
+  const mesure = g.measureText(CONFIG.nomIle).width;
+  g.save();
+  g.translate(512, 160);
+  g.scale(Math.min(1, 940 / mesure), 1);
+  g.strokeText(CONFIG.nomIle, 0, 0);
+  g.fillText(CONFIG.nomIle, 0, 0);
+  g.restore();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+
+  // Le cadre en bois et l'image devant
+  const cadre = new THREE.Mesh(new THREE.BoxGeometry(largeur + 1, hauteur + 1, 0.6), matiere(0x7a4b2a));
+  cadre.position.y = hauteurPoteaux + hauteur / 2;
+  const image = new THREE.Mesh(new THREE.PlaneGeometry(largeur, hauteur), new THREE.MeshStandardMaterial({ map: texture }));
+  image.position.set(0, cadre.position.y, 0.31);
+  groupe.add(cadre, image);
+  for (const cote of [-1, 1]) {
+    const poteau = new THREE.Mesh(new THREE.BoxGeometry(0.8, hauteurPoteaux + 1, 0.8), matiere(0x7a4b2a));
+    poteau.position.set(cote * largeur * 0.35, (hauteurPoteaux + 1) / 2, -0.2);
+    groupe.add(poteau);
+  }
+
+  // Le panneau regarde vers le début de la piste (là où l'avion démarre)
+  const sol = hauteurDuSol(PANNEAU.x, PANNEAU.z);
+  groupe.position.set(PANNEAU.x, sol, PANNEAU.z);
+  groupe.rotation.y = Math.atan2(PISTE.x - PANNEAU.x, (SEUIL_SUD - 30) - PANNEAU.z);
+  ajouterObstacle(PANNEAU.x, PANNEAU.z, largeur / 2, sol + hauteurPoteaux + hauteur + 0.5);
+  return groupe;
+}
+
+// ---------- Les lettres géantes sur la montagne (comme à Hollywood !) ----------
+function creerLettresMontagne(scene) {
+  const texte = CONFIG.nomIle;
+  const largeurLettre = 14;
+  const hauteurLettre = 20;
+  const espace = 15;
+  const zLigne = MONTAGNE.z + 110; // sur la pente sud de la montagne, face à la piste
+
+  for (let i = 0; i < texte.length; i++) {
+    const lettre = texte[i];
+    if (lettre === ' ') continue;
+
+    // On dessine la lettre en blanc sur une image transparente
+    const canvas = document.createElement('canvas');
+    canvas.width = 140;
+    canvas.height = 200;
+    const g = canvas.getContext('2d');
+    g.font = 'bold 190px "Arial Black", Arial, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.lineWidth = 8;
+    g.strokeStyle = '#9aa5b1';
+    g.strokeText(lettre, 70, 108);
+    g.fillStyle = '#ffffff';
+    g.fillText(lettre, 70, 108);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    const geo = new THREE.PlaneGeometry(largeurLettre, hauteurLettre);
+    geo.translate(0, hauteurLettre / 2, 0); // la lettre "pousse" à partir du sol
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      map: texture, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide,
+    }));
+    const x = MONTAGNE.x + (i - (texte.length - 1) / 2) * espace;
+    const sol = Math.max(hauteurDuSol(x, zLigne), 1);
+    mesh.position.set(x, sol - 1, zLigne);
+    mesh.rotation.x = -0.35; // penchée en arrière, posée contre la pente
+    scene.add(mesh);
+  }
+}
+
 // ---------- Une maison ----------
 function creerMaison(hasard) {
   const groupe = new THREE.Group();
@@ -450,6 +559,7 @@ function creerArbres(scene) {
     if (distanceAuRectangle(x, z, ZONE_AEROPORT) < 15) continue;
     if (Math.abs(x - PISTE.x) < 30 && z > SEUIL_SUD) continue; // la rampe d'approche
     if (Math.hypot(x - VILLAGE.x, z - VILLAGE.z) < VILLAGE.rayon + 8) continue;
+    if (Math.hypot(x - PANNEAU.x, z - PANNEAU.z) < 30) continue;
 
     const arbre = new THREE.Group();
     const tronc = new THREE.Mesh(geoTronc, matTronc);
@@ -485,6 +595,8 @@ export function creerMonde(scene) {
   scene.add(creerAeroport());
   scene.add(creerTour());
   scene.add(creerMancheAAir(-40, SEUIL_SUD - 60));
+  scene.add(creerPanneauBienvenue());
+  creerLettresMontagne(scene);
   creerVillage(scene);
   creerArbres(scene);
 }

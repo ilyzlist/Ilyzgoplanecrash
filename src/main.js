@@ -8,7 +8,11 @@ import {
   hauteurDuSol, ajouterObstacle, PARKING,
 } from './world.js';
 import { creerAvion, creerModele, kmh } from './plane.js';
-import { mettreAJourHUD } from './ui.js';
+import { mettreAJourHUD, afficherMessage } from './ui.js';
+import { installerCommandesTactiles, mettreAJourTactile, estTactile } from './touch.js';
+
+// Les commandes pour téléphone et tablette (le clavier marche toujours aussi)
+installerCommandesTactiles();
 
 // Le moteur de rendu (ce qui dessine à l'écran)
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -20,6 +24,16 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.5, 3000);
 
+// Adapte l'image à la taille de l'écran.
+// Sur un téléphone tenu en hauteur, on élargit le champ de vision pour bien voir l'avion.
+function adapterEcran() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.fov = camera.aspect < 1 ? 90 : 65;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+adapterEcran();
+
 creerMonde(scene);
 const avion = creerAvion(scene, camera);
 
@@ -30,14 +44,17 @@ const zGare = PARKING.z1 - 20;
 avionGare.position.set(xGare, hauteurDuSol(xGare, zGare) + CONFIG.hauteurRoues, zGare);
 avionGare.rotation.y = Math.PI / 2; // le nez tourné vers la piste
 scene.add(avionGare);
-ajouterObstacle(xGare, zGare, 6, avionGare.position.y + 1.5);
+ajouterObstacle(xGare, zGare, 6 * CONFIG.tailleAvion, avionGare.position.y + 1.5 * CONFIG.tailleAvion);
 
-// Si on change la taille de la fenêtre, on adapte l'image
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+// Si on change la taille de la fenêtre (ou si on tourne le téléphone), on adapte l'image
+window.addEventListener('resize', adapterEcran);
+
+// Sur un téléphone tenu en hauteur, on conseille de le tourner (après le message de bienvenue)
+setTimeout(() => {
+  if (estTactile() && window.innerHeight > window.innerWidth) {
+    afficherMessage('📱 Astuce : tourne ton téléphone pour mieux voir', 4);
+  }
+}, 8000);
 
 // Le tableau de bord en haut à gauche
 function tableauDeBord() {
@@ -78,6 +95,7 @@ function boucle() {
   avion.mettreAJour(dt);
   mettreAJourMonde(avion.etat);
   tableauDeBord();
+  mettreAJourTactile(avion.etat);
   renderer.render(scene, camera);
   requestAnimationFrame(boucle);
 }
