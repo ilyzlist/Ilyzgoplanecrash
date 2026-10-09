@@ -34,7 +34,9 @@ Jeu de vol en 3D dans le navigateur. On pilote un petit avion au-dessus d'un arc
 | Shift | Ralentir |
 | M | Ouvrir le carnet de bord |
 
-La physique est **arcade, pas réaliste** : l'avion ne décroche pas et ne peut pas s'écraser. S'il touche le sol ou l'eau, il rebondit doucement vers le haut.
+La physique est **un peu réaliste mais sans danger** : on tourne en penchant l'avion, Espace/Shift règlent une manette des gaz (qui reste en place), la gravité et la portance comptent, et l'avion peut décrocher s'il est trop lent. Mais il ne peut jamais s'écraser : s'il touche le sol ou l'eau ailleurs que sur la piste, il rebondit doucement vers le haut.
+
+**Atterrissage** : sur la piste de l'île, si on arrive assez lentement et à plat, l'avion se pose, roule, freine (Shift) et peut redécoller (gaz + ↓).
 
 ---
 
