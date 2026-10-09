@@ -8,13 +8,29 @@
       html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; font-family: system-ui, sans-serif; }
       #hud {
         position: fixed; top: 12px; left: 12px;
-        color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.5);
-        font-size: 16px; line-height: 1.5; pointer-events: none;
+        color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6);
+        font-size: 16px; line-height: 1.6; pointer-events: none;
+      }
+      #message {
+        position: fixed; top: 22%; left: 50%; transform: translateX(-50%);
+        max-width: 80%; padding: 12px 22px; border-radius: 12px;
+        background: rgba(0,0,0,.45); color: #fff; font-size: 22px; text-align: center;
+        opacity: 0; transition: opacity .4s; pointer-events: none;
+      }
+      #message.visible { opacity: 1; }
+      #aide {
+        position: fixed; bottom: 10px; left: 0; right: 0; text-align: center;
+        color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); font-size: 14px; pointer-events: none;
       }
     </style>
   </head>
   <body>
     <div id="hud"></div>
+    <div id="message"></div>
+    <div id="aide">
+      ↑ ↓ piquer / cabrer · ← → pencher pour tourner · Espace : plus de gaz · Shift : moins de gaz / freiner ·
+      Sur la piste : gaz à fond puis ↓ pour décoller
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

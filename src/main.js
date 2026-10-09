@@ -2,8 +2,10 @@
 //  MAIN : crée la scène et fait tourner la boucle du jeu
 // ============================================================
 import * as THREE from 'three';
-import { creerMonde } from './world.js';
+import { CONFIG } from './config.js';
+import { creerMonde, distanceALaPiste } from './world.js';
 import { creerAvion } from './plane.js';
+import { mettreAJourHUD } from './ui.js';
 
 // Le moteur de rendu (ce qui dessine à l'écran)
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -25,18 +27,32 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Petit affichage en haut à gauche
-const hud = document.getElementById('hud');
+// Le tableau de bord en haut à gauche
+function tableauDeBord() {
+  const e = avion.etat;
+  const crans = Math.round(e.moteur * 10);
+  const lignes = [
+    `Vitesse : ${Math.round(e.vitesse)}`,
+    `Altitude : ${Math.max(0, Math.round(e.hauteurSol))}`,
+    `Moteur : ${'█'.repeat(crans)}${'░'.repeat(10 - crans)} ${Math.round(e.moteur * 100)}%`,
+    e.auSol ? 'Au sol' : e.decroche ? '⚠️ Décrochage !' : 'En vol',
+  ];
+  // Près de la piste : on aide à préparer l'atterrissage
+  if (!e.auSol && e.tangage < 0.05 && e.hauteurSol < 80 && distanceALaPiste(e.position.x, e.position.z) < 250) {
+    lignes.push(e.vitesse <= CONFIG.vitesseAtterrissageMax
+      ? '🛬 Approche : vitesse OK'
+      : `🛬 Approche : trop vite ! (max ${CONFIG.vitesseAtterrissageMax}, Shift)`);
+  }
+  if (e.atterrissages > 0) lignes.push(`Atterrissages réussis : ${e.atterrissages}`);
+  mettreAJourHUD(lignes);
+}
 
 // La boucle du jeu : appelée environ 60 fois par seconde
 const horloge = new THREE.Clock();
 function boucle() {
   const dt = Math.min(horloge.getDelta(), 0.05); // évite les gros sauts si l'onglet était caché
   avion.mettreAJour(dt);
-
-  hud.textContent =
-    `Vitesse : ${Math.round(avion.etat.vitesse)}  ·  Altitude : ${Math.round(avion.etat.position.y)}`;
-
+  tableauDeBord();
   renderer.render(scene, camera);
   requestAnimationFrame(boucle);
 }
