@@ -28,11 +28,14 @@ Jeu de vol en 3D dans le navigateur. On pilote un petit avion au-dessus d'un arc
 ## Contrôles (clavier)
 | Touche | Action |
 |---|---|
-| ↑ / ↓ | Piquer / cabrer |
-| ← / → | Tourner (roulis + lacet simplifiés) |
-| Espace | Accélérer |
-| Shift | Ralentir |
+| ↑ / ↓ | Piquer / cabrer (↓ sur la piste = décoller) |
+| ← / → | Pencher pour tourner (au sol : tourner) |
+| 0 à 9 | Régler les gaz directement (0 = coupé, 9 = 90 %) |
+| Espace / Shift | Plus / moins de gaz, petit à petit |
+| F | Freins au sol, volets en vol |
 | M | Ouvrir le carnet de bord |
+
+L'avion du joueur s'appelle **ILYZGO AIR** (nom peint sur le fuselage, réglable dans `config.js`). Les vitesses s'affichent en km/h (vitesse du jeu × 3,6).
 
 La physique est **un peu réaliste mais sans danger** : on tourne en penchant l'avion, Espace/Shift règlent une manette des gaz (qui reste en place), la gravité et la portance comptent, et l'avion peut décrocher s'il est trop lent. Mais il ne peut jamais s'écraser : s'il touche le sol ou l'eau ailleurs que sur la piste, il rebondit doucement vers le haut.
 

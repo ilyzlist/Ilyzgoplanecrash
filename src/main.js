@@ -3,8 +3,11 @@
 // ============================================================
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
-import { creerMonde, distanceALaPiste } from './world.js';
-import { creerAvion } from './plane.js';
+import {
+  creerMonde, mettreAJourMonde, distanceALaPiste, lumieresPAPI,
+  hauteurDuSol, ajouterObstacle, PARKING,
+} from './world.js';
+import { creerAvion, creerModele, kmh } from './plane.js';
 import { mettreAJourHUD } from './ui.js';
 
 // Le moteur de rendu (ce qui dessine à l'écran)
@@ -20,6 +23,15 @@ const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerH
 creerMonde(scene);
 const avion = creerAvion(scene, camera);
 
+// Un deuxième avion ILYZGO AIR, garé sur le parking de l'aéroport
+const avionGare = creerModele();
+const xGare = PARKING.x0 + 45;
+const zGare = PARKING.z1 - 20;
+avionGare.position.set(xGare, hauteurDuSol(xGare, zGare) + CONFIG.hauteurRoues, zGare);
+avionGare.rotation.y = Math.PI / 2; // le nez tourné vers la piste
+scene.add(avionGare);
+ajouterObstacle(xGare, zGare, 6, avionGare.position.y + 1.5);
+
 // Si on change la taille de la fenêtre, on adapte l'image
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -30,18 +42,30 @@ window.addEventListener('resize', () => {
 // Le tableau de bord en haut à gauche
 function tableauDeBord() {
   const e = avion.etat;
-  const crans = Math.round(e.moteur * 10);
+  const crans = Math.round(e.gaz * 10);
   const lignes = [
-    `Vitesse : ${Math.round(e.vitesse)}`,
-    `Altitude : ${Math.max(0, Math.round(e.hauteurSol))}`,
-    `Moteur : ${'█'.repeat(crans)}${'░'.repeat(10 - crans)} ${Math.round(e.moteur * 100)}%`,
-    e.auSol ? 'Au sol' : e.decroche ? '⚠️ Décrochage !' : 'En vol',
+    `<b>✈️ ${CONFIG.nomAvion}</b>`,
+    `Vitesse : ${kmh(e.vitesse)} km/h`,
+    `Altitude : ${Math.max(0, Math.round(e.hauteurSol))} m`,
+    `Gaz : ${'█'.repeat(crans)}${'░'.repeat(10 - crans)} ${Math.round(e.gaz * 100)}%`,
   ];
-  // Près de la piste : on aide à préparer l'atterrissage
-  if (!e.auSol && e.tangage < 0.05 && e.hauteurSol < 80 && distanceALaPiste(e.position.x, e.position.z) < 250) {
+  if (e.auSol) lignes.push(e.freins ? 'Au sol · 🛑 Freins' : 'Au sol');
+  else if (e.decroche) lignes.push('⚠️ Décrochage !');
+  else lignes.push(e.volets ? 'En vol · Volets sortis' : 'En vol');
+
+  // En approche : on aide à préparer l'atterrissage
+  if (!e.auSol && e.tangage < 0.05 && e.hauteurSol < 120 && distanceALaPiste(e.position.x, e.position.z) < 600) {
     lignes.push(e.vitesse <= CONFIG.vitesseAtterrissageMax
-      ? '🛬 Approche : vitesse OK'
-      : `🛬 Approche : trop vite ! (max ${CONFIG.vitesseAtterrissageMax}, Shift)`);
+      ? '🛬 Vitesse d\'approche : OK'
+      : `🛬 Trop vite ! (max ${kmh(CONFIG.vitesseAtterrissageMax)} km/h)`);
+    const papi = lumieresPAPI(e.position.x, e.position.y - CONFIG.hauteurRoues, e.position.z);
+    if (papi) {
+      const blanches = papi.filter(Boolean).length;
+      const avis = ['beaucoup trop bas !', 'un peu bas', 'bonne pente ✔', 'un peu haut', 'beaucoup trop haut !'][blanches];
+      // Vu du pilote : la lumière la plus éloignée de la piste est à gauche
+      const ampoules = [...papi].reverse().map((b) => (b ? '⚪' : '🔴')).join('');
+      lignes.push(`PAPI ${ampoules} ${avis}`);
+    }
   }
   if (e.atterrissages > 0) lignes.push(`Atterrissages réussis : ${e.atterrissages}`);
   mettreAJourHUD(lignes);
@@ -52,6 +76,7 @@ const horloge = new THREE.Clock();
 function boucle() {
   const dt = Math.min(horloge.getDelta(), 0.05); // évite les gros sauts si l'onglet était caché
   avion.mettreAJour(dt);
+  mettreAJourMonde(avion.etat);
   tableauDeBord();
   renderer.render(scene, camera);
   requestAnimationFrame(boucle);
