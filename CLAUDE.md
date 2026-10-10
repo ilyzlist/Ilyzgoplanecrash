@@ -34,7 +34,8 @@ Jeu de vol en 3D dans le navigateur. On pilote un petit avion au-dessus d'un arc
 
 **Les noms (attention à l'orthographe !)** :
 - Pays / île : **ILYZGO COUNTRY** · ville : **ILYZGO CITY** · supermarché : **ILYZGO MARKET**
-- Pilotes (que des garçons) : **Ilyas** (I-L-Y-A-S), **Lucas**, **Mayol** — à ne pas confondre avec ILYZGO (I-L-Y-Z-G-O)
+- Pilotes : **Ilyas** (I-L-Y-A-S), **Lucas**, **Mayol** (les 3 premiers, des garçons) — à ne pas confondre avec ILYZGO (I-L-Y-Z-G-O). Puis 5 nouveaux aux prénoms provisoires choisis par Claude (Adam, Noah, Yanis, Léo, Inès), modifiables dans `config.js`. Les personnages non choisis se promènent sur l'île (`src/habitants.js`).
+- **Statue d'Ilyas** : statue dorée géante sur la place du monument (à côté de la ville).
 - Avions : **ILYZGO AIR** (petit avion à hélice), **ILYZGO AIR EXPRESS** (supersonique façon Concorde), **ILYZGO AIR PASSENGERS** (géant façon Boeing 747)
 - Les avions, pilotes et passeports se règlent dans `config.js` (listes `AVIONS`, `PERSONNAGES`, `PASSEPORTS`).
 
@@ -48,11 +49,16 @@ Jeu de vol en 3D dans le navigateur. On pilote un petit avion au-dessus d'un arc
 | Shift | Moins de gaz | Courir |
 | F | Freins au sol, volets en vol | — |
 | E | Descendre de l'avion (arrêté au sol) | Monter dans l'avion (près de la porte) |
+| B | — | Construire (puis 1-8 choisir, R tourner, Entrée poser, Échap) |
 | M | Ouvrir le carnet de bord (à faire) | |
 
 **Sur téléphone et tablette** (`src/touch.js`) : un manche à gauche (en avion : piquer / monter / pencher ; à pied : marcher), une manette des gaz et un bouton FREIN (VOLETS en vol) à droite en avion, un bouton SAUT à pied, et un bouton MONTER / DESCENDRE au milieu quand c'est possible. Les commandes sont semi-transparentes et **ne doivent jamais se chevaucher ni cacher le jeu** (vérifier en paysage ET en portrait). Le clavier doit toujours marcher en même temps.
 
-L'île s'appelle **ILYZGO COUNTRY** (panneau de bienvenue près de la piste + grosses lettres sur la montagne). À côté de l'aéroport il y a **ILYZGO CITY** (supermarché ILYZGO MARKET, maisons, fontaine), le parking des voitures et la route.
+L'île s'appelle **ILYZGO COUNTRY** (panneau de bienvenue près de la piste + grosses lettres sur la montagne). Elle a deux grandes parties :
+- **Le côté aéroport et les constructions** : l'aéroport, **ILYZGO CITY** (supermarché ILYZGO MARKET, maisons, fontaine), le parking des voitures, la route, l'**École d'ILYZGO** (cour, terrain de foot, basket) et la **place du monument** (statue d'Ilyas). Le vieux village est à l'ouest de la piste.
+- **La grande forêt d'ILYZGO** au nord-est : forêt dense (arbres dessinés avec `InstancedMesh` pour rester fluide), avec une clairière, la cabane du garde forestier et un feu de camp.
+
+**Construire** (`src/construction.js`) : à pied, touche **B** ou bouton 🔨 → on choisit parmi 8 bâtiments (maison, boulangerie, café, glacier, pompiers, hôtel, aire de jeux, arbre) → aperçu transparent devant le personnage avec un cercle vert (possible) ou rouge (eau, pente, déjà occupé, piste/aéroport/route/monument/école) → **Entrée** / ✔ Poser, **R** / ↻ Tourner, **Échap** / ✖. Les constructions ne sont pas encore sauvegardées (elles disparaissent si on recharge la page).
 
 Les vitesses s'affichent en km/h (vitesse du jeu × 3,6).
 
@@ -81,7 +87,9 @@ src/
   modeles-avions.js // modèles 3D des 3 avions (+ escalier des gros avions)
   character.js   // figurines des pilotes, marche, saut
   world.js       // mer, île, piste, village, arbres, panneaux
-  batiments.js   // aérogare, contrôle des passeports, parking, route, ILYZGO CITY
+  batiments.js   // aérogare, contrôle des passeports, parking, route, ILYZGO CITY, école, statue, cabane
+  construction.js // le mode construction et les 8 bâtiments qu'on peut poser
+  habitants.js   // les personnages non choisis qui se promènent
   wind.js        // courants de vent (particules + zone de boost)
   rings.js       // anneaux de la phase 1
   debris.js      // débris, boîte noire, détection de proximité

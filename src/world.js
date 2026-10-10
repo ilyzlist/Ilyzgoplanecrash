@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { CONFIG } from './config.js';
 
 // L'île : un grand plateau plat entouré de plages
-export const ILE = { x: 0, z: -500, rayon: 450, hauteurPlateau: 8 };
+export const ILE = { x: 100, z: -550, rayon: 720, hauteurPlateau: 8 };
 // La montagne, au nord-ouest de l'île
 export const MONTAGNE = { x: -220, z: -800, rayon: 160, hauteur: 110 };
 // La piste d'atterrissage, dans l'axe nord-sud.
@@ -28,6 +28,12 @@ export const PARKING_VOITURES = { x0: 214, x1: 262, z0: -590, z1: -497 };
 export const ROUTE = { x0: 230, x1: 240, z0: -497, z1: -390 };
 // ILYZGO CITY : le nouveau quartier avec le supermarché
 export const VILLE = { x: 205, z: -330, rayon: 85 };
+// La grande forêt d'ILYZGO, au nord-est (avec une clairière au milieu)
+export const FORET = { x: 380, z: -900, rayon: 260, clairiere: 30 };
+// La place du monument : la statue géante d'Ilyas
+export const MONUMENT = { x: 85, z: -360, rayon: 22 };
+// L'école d'ILYZGO, à l'est de la ville
+export const ECOLE = { x0: 305, x1: 385, z0: -380, z1: -280 };
 // Où l'avion du joueur est garé au début, et où le personnage arrive
 export const PLACE_AVION = { x: 125, z: -540, cap: Math.PI / 2 };      // le nez tourné vers la piste
 export const DEPART_PIETON = { x: 245, z: -540, angle: Math.PI / 2 };  // devant l'aérogare, côté parking
@@ -38,6 +44,17 @@ const ZONE_PISTE = {
   z0: PISTE.z - PISTE.longueur / 2, z1: PISTE.z + PISTE.longueur / 2,
 };
 const ZONE_AEROPORT = { x0: 20, x1: 268, z0: -645, z1: -440 };
+
+// Les endroits où on ne peut pas construire : la piste, l'aéroport, la route,
+// la place du monument et l'école. Renvoie le nom de l'endroit, ou null si c'est libre.
+export function zoneReservee(x, z, rayon) {
+  if (distanceAuRectangle(x, z, ZONE_PISTE) < rayon + 15) return 'la piste';
+  if (distanceAuRectangle(x, z, ZONE_AEROPORT) < rayon) return "l'aéroport";
+  if (distanceAuRectangle(x, z, ROUTE) < rayon + 2) return 'la route';
+  if (Math.hypot(x - MONUMENT.x, z - MONUMENT.z) < MONUMENT.rayon + rayon) return 'la place du monument';
+  if (distanceAuRectangle(x, z, ECOLE) < rayon) return "l'école";
+  return null;
+}
 
 // Le seuil de la piste 36 (là où elle commence quand on arrive du sud)
 const SEUIL_SUD = PISTE.z + PISTE.longueur / 2;
@@ -105,7 +122,9 @@ export function hauteurDuSol(x, z) {
     1 - transition(distanceAuRectangle(x, z, ZONE_AEROPORT), 0, 30),
     1 - transition(distanceAuRectangle(x, z, ROUTE), 0, 30),
     1 - transition(Math.max(Math.hypot(x - VILLAGE.x, z - VILLAGE.z) - VILLAGE.rayon, 0), 0, 30),
-    1 - transition(Math.max(Math.hypot(x - VILLE.x, z - VILLE.z) - VILLE.rayon, 0), 0, 30)
+    1 - transition(Math.max(Math.hypot(x - VILLE.x, z - VILLE.z) - VILLE.rayon, 0), 0, 30),
+    1 - transition(Math.max(Math.hypot(x - MONUMENT.x, z - MONUMENT.z) - MONUMENT.rayon, 0), 0, 25),
+    1 - transition(distanceAuRectangle(x, z, ECOLE), 0, 25)
   );
   return h + (ILE.hauteurPlateau - h) * plat;
 }
@@ -174,7 +193,7 @@ function couleurSelonHauteur(h) {
 // ---------- L'île ----------
 function creerIle() {
   const taille = ILE.rayon * 2.2;
-  const geo = new THREE.PlaneGeometry(taille, taille, 120, 120);
+  const geo = new THREE.PlaneGeometry(taille, taille, 160, 160);
   geo.rotateX(-Math.PI / 2); // on couche le carré à plat
 
   const positions = geo.attributes.position;
@@ -560,48 +579,102 @@ function creerVillage(scene) {
   }
 }
 
-// ---------- Les arbres ----------
+// ---------- Les arbres et la grande forêt ----------
+// Est-ce qu'on peut planter un arbre ici ? (pas dans l'eau, pas sur l'aéroport, pas en ville…)
+function placePourArbre(x, z) {
+  const h = hauteurDuSol(x, z);
+  if (h < 3 || h > 40) return false;
+  if (distanceAuRectangle(x, z, ZONE_PISTE) < 35) return false;
+  if (distanceAuRectangle(x, z, ZONE_AEROPORT) < 15) return false;
+  if (Math.abs(x - PISTE.x) < 30 && z > SEUIL_SUD) return false; // la rampe d'approche
+  if (Math.hypot(x - VILLAGE.x, z - VILLAGE.z) < VILLAGE.rayon + 8) return false;
+  if (Math.hypot(x - PANNEAU.x, z - PANNEAU.z) < 30) return false;
+  if (Math.hypot(x - VILLE.x, z - VILLE.z) < VILLE.rayon + 8) return false;
+  if (Math.hypot(x - MONUMENT.x, z - MONUMENT.z) < MONUMENT.rayon + 10) return false;
+  if (distanceAuRectangle(x, z, ECOLE) < 10) return false;
+  if (distanceAuRectangle(x, z, ROUTE) < 10) return false;
+  if (Math.hypot(x - FORET.x, z - FORET.z) < FORET.clairiere) return false; // la clairière
+  return true;
+}
+
+// Fabrique un arbre (pour les constructions du joueur) : un sapin
+export function creerSapin(echelle = 1) {
+  const arbre = new THREE.Group();
+  const tronc = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 3, 6), matiere(0x7a4b2a));
+  tronc.position.y = 1.5;
+  const bas = new THREE.Mesh(new THREE.ConeGeometry(2.8, 5, 7), matiere(0x2f9e44));
+  bas.position.y = 4.5;
+  const haut = new THREE.Mesh(new THREE.ConeGeometry(2, 4, 7), matiere(0x3fb950));
+  haut.position.y = 7;
+  arbre.add(tronc, bas, haut);
+  arbre.scale.setScalar(echelle);
+  return arbre;
+}
+
 function creerArbres(scene) {
   const hasard = creerHasard(123);
-  const geoTronc = new THREE.CylinderGeometry(0.4, 0.6, 3, 6);
-  const geoFeuilles = new THREE.ConeGeometry(2.8, 7, 7);
-  const matTronc = matiere(0x7a4b2a);
-  const matFeuilles = [matiere(0x2f9e44), matiere(0x3fb950), matiere(0x24813a)];
+  const arbres = []; // { x, z, h, echelle, sapin }
 
-  let plantes = 0;
-  for (let essai = 0; essai < CONFIG.nombreArbres * 20 && plantes < CONFIG.nombreArbres; essai++) {
+  // 1) Des arbres éparpillés un peu partout sur l'île
+  for (let essai = 0; essai < CONFIG.nombreArbres * 20 && arbres.length < CONFIG.nombreArbres; essai++) {
     const angle = hasard() * Math.PI * 2;
-    const r = Math.sqrt(hasard()) * ILE.rayon * 0.85;
+    const r = Math.sqrt(hasard()) * ILE.rayon * 0.88;
     const x = ILE.x + Math.cos(angle) * r;
     const z = ILE.z + Math.sin(angle) * r;
-    const h = hauteurDuSol(x, z);
-    // Pas dans l'eau, pas trop haut, pas sur l'aérodrome, pas dans le village
-    if (h < 3 || h > 40) continue;
-    if (distanceAuRectangle(x, z, ZONE_PISTE) < 35) continue;
-    if (distanceAuRectangle(x, z, ZONE_AEROPORT) < 15) continue;
-    if (Math.abs(x - PISTE.x) < 30 && z > SEUIL_SUD) continue; // la rampe d'approche
-    if (Math.hypot(x - VILLAGE.x, z - VILLAGE.z) < VILLAGE.rayon + 8) continue;
-    if (Math.hypot(x - PANNEAU.x, z - PANNEAU.z) < 30) continue;
-    if (Math.hypot(x - VILLE.x, z - VILLE.z) < VILLE.rayon + 8) continue;
-    if (distanceAuRectangle(x, z, ROUTE) < 10) continue;
-
-    const arbre = new THREE.Group();
-    const tronc = new THREE.Mesh(geoTronc, matTronc);
-    tronc.position.y = 1.5;
-    const feuilles = new THREE.Mesh(geoFeuilles, matFeuilles[plantes % 3]);
-    feuilles.position.y = 6.5;
-    arbre.add(tronc, feuilles);
-    arbre.scale.setScalar(0.8 + hasard() * 0.6);
-    arbre.position.set(x, h, z);
-    scene.add(arbre);
-    plantes++;
+    if (!placePourArbre(x, z)) continue;
+    arbres.push({ x, z, h: hauteurDuSol(x, z), echelle: 0.8 + hasard() * 0.6, sapin: hasard() < 0.6 });
   }
+
+  // 2) La grande forêt : beaucoup d'arbres serrés
+  const total = arbres.length + CONFIG.nombreArbresForet;
+  for (let essai = 0; essai < CONFIG.nombreArbresForet * 10 && arbres.length < total; essai++) {
+    const angle = hasard() * Math.PI * 2;
+    const r = Math.sqrt(hasard()) * FORET.rayon;
+    const x = FORET.x + Math.cos(angle) * r;
+    const z = FORET.z + Math.sin(angle) * r;
+    if (!placePourArbre(x, z)) continue;
+    arbres.push({ x, z, h: hauteurDuSol(x, z), echelle: 0.9 + hasard() * 0.9, sapin: hasard() < 0.7 });
+  }
+
+  // On dessine tous les arbres d'un coup (beaucoup plus rapide, même sur téléphone)
+  const sapins = arbres.filter((a) => a.sapin);
+  const feuillus = arbres.filter((a) => !a.sapin);
+  const blanc = () => new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true });
+  const troncs = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.4, 0.6, 3, 6), matiere(0x7a4b2a), arbres.length);
+  const sapinsBas = new THREE.InstancedMesh(new THREE.ConeGeometry(2.8, 5, 7), blanc(), sapins.length);
+  const sapinsHaut = new THREE.InstancedMesh(new THREE.ConeGeometry(2, 4, 7), blanc(), sapins.length);
+  const boules = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(3, 0), blanc(), feuillus.length);
+  const verts = [0x2f9e44, 0x3fb950, 0x24813a, 0x1b6b30, 0x4caf50].map((c) => new THREE.Color(c));
+  const outil = new THREE.Object3D();
+
+  const placer = (instances, i, a, hauteur, etirement = 1) => {
+    outil.position.set(a.x, a.h + hauteur * a.echelle, a.z);
+    outil.scale.set(a.echelle, a.echelle * etirement, a.echelle);
+    outil.rotation.set(0, (a.x * 7 + a.z * 13) % Math.PI, 0);
+    outil.updateMatrix();
+    instances.setMatrixAt(i, outil.matrix);
+  };
+  arbres.forEach((a, i) => {
+    placer(troncs, i, a, 1.5);
+    ajouterObstacle(a.x, a.z, 0.9 * a.echelle, a.h + 8 * a.echelle);
+  });
+  sapins.forEach((a, i) => {
+    placer(sapinsBas, i, a, 4.5);
+    placer(sapinsHaut, i, a, 7);
+    sapinsBas.setColorAt(i, verts[i % verts.length]);
+    sapinsHaut.setColorAt(i, verts[(i + 2) % verts.length]);
+  });
+  feuillus.forEach((a, i) => {
+    placer(boules, i, a, 5.5, 1.15);
+    boules.setColorAt(i, verts[(i + 1) % verts.length]);
+  });
+  scene.add(troncs, sapinsBas, sapinsHaut, boules);
 }
 
 export function creerMonde(scene) {
   // Le ciel et un peu de brume au loin
   scene.background = new THREE.Color(CONFIG.couleurCiel);
-  scene.fog = new THREE.Fog(CONFIG.couleurCiel, 500, 1800);
+  scene.fog = new THREE.Fog(CONFIG.couleurCiel, 600, 2200);
 
   // Les lumières : le soleil + une lumière douce venant du ciel
   const soleil = new THREE.DirectionalLight(0xffffff, 2.2);

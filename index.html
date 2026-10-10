@@ -20,7 +20,46 @@
 
       /* Pendant le menu, on cache tout ce qui sert à jouer */
       body.menu-ouvert #hud, body.menu-ouvert #message, body.menu-ouvert #aide,
-      body.menu-ouvert #tactile, body.menu-ouvert #bouton-action { display: none !important; }
+      body.menu-ouvert #tactile, body.menu-ouvert #bouton-action,
+      body.menu-ouvert #bouton-construire, body.menu-ouvert #construction { display: none !important; }
+
+      /* ---------- La construction 🔨 ---------- */
+      #bouton-construire {
+        position: fixed; right: calc(16px + env(safe-area-inset-right)); bottom: calc(40px + env(safe-area-inset-bottom));
+        padding: 10px 18px; border-radius: 99px; border: 2px solid #fff; cursor: pointer;
+        background: #2a9d8f; color: #fff; font: 800 15px system-ui, sans-serif;
+        box-shadow: 0 3px 10px rgba(0,0,0,.25);
+      }
+      #construction {
+        position: fixed; left: 50%; transform: translateX(-50%);
+        bottom: calc(40px + env(safe-area-inset-bottom));
+        width: min(620px, calc(100vw - 24px)); box-sizing: border-box;
+        padding: 10px; border-radius: 16px; background: rgba(10, 35, 70, .85);
+        color: #fff; font-family: system-ui, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,.3);
+      }
+      .construction-titre { display: flex; justify-content: space-between; align-items: center; font-weight: 800; margin-bottom: 8px; }
+      .construction-titre .fermer, #construction-placement button {
+        border: none; border-radius: 10px; cursor: pointer; font: 800 14px system-ui, sans-serif;
+        padding: 8px 12px; background: rgba(255,255,255,.18); color: #fff;
+      }
+      #construction-liste { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; touch-action: pan-x; }
+      .choix-batiment {
+        flex: none; width: 84px; padding: 8px 4px; border-radius: 12px; border: 2px solid transparent;
+        background: rgba(255,255,255,.12); color: #fff; cursor: pointer;
+        display: flex; flex-direction: column; align-items: center; gap: 2px; font: 700 12px system-ui, sans-serif;
+      }
+      .choix-batiment:hover { border-color: #ffbe0b; }
+      .choix-batiment .emoji { font-size: 28px; }
+      .choix-batiment kbd { font-size: 10px; opacity: .6; }
+      body.tactile .choix-batiment kbd, body.tactile .texte-ordinateur { display: none; }
+      #construction-placement { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+      #construction-info { flex: 1 1 100%; text-align: center; font-weight: 700; font-size: 14px; }
+      #construction-placement [data-action="poser"] { background: #22c55e; }
+      #construction-placement [data-action="poser"]:disabled { background: #6b7280; opacity: .7; }
+      body:not(.tactile) #construction-placement button::after { opacity: .7; font-size: 11px; margin-left: 4px; }
+      body:not(.tactile) [data-action="tourner"]::after { content: '(R)'; }
+      body:not(.tactile) [data-action="poser"]::after { content: '(Entrée)'; }
+      body:not(.tactile) [data-action="annuler"]::after { content: '(Échap)'; }
 
       /* ---------- Tableau de bord et messages ---------- */
       #hud {
@@ -137,6 +176,22 @@
         #bouton-saut { width: 70px; height: 70px; }
         #bouton-action { font-size: 15px; padding: 9px 18px; }
       }
+      /* Sur téléphone : le bouton 🔨 se met au-dessus du bouton SAUT, le panneau entre les commandes */
+      body.tactile #bouton-construire {
+        width: 62px; height: 62px; padding: 0; border-radius: 50%; font-size: 26px;
+        bottom: calc(18px + 84px + 26px + env(safe-area-inset-bottom)); right: calc(22px + env(safe-area-inset-right));
+      }
+      body.tactile #construction { bottom: calc(18px + env(safe-area-inset-bottom)); width: min(560px, calc(100vw - 2 * 170px)); }
+      @media (max-width: 700px), (max-height: 500px) {
+        body.tactile #bouton-construire { width: 52px; height: 52px; font-size: 22px; bottom: calc(18px + 70px + 22px + env(safe-area-inset-bottom)); right: calc(27px + env(safe-area-inset-right)); }
+        #construction { padding: 8px; }
+        .choix-batiment { width: 70px; padding: 6px 2px; font-size: 11px; }
+        .choix-batiment .emoji { font-size: 22px; }
+        .construction-titre { font-size: 13px; margin-bottom: 6px; }
+        #construction-info { font-size: 12px; }
+        #construction-placement button { padding: 7px 10px; font-size: 13px; }
+      }
+
       /* Téléphone à l'horizontale : le message se place en haut, entre le tableau de bord et le bouton plein écran */
       @media (max-height: 500px) {
         #message {
@@ -148,6 +203,7 @@
       @media (max-width: 700px) and (min-height: 501px) {
         #message { top: 165px; max-width: 92%; width: max-content; font-size: 15px; padding: 8px 14px; }
         body.tactile #bouton-action { bottom: calc(150px + env(safe-area-inset-bottom)); }
+        body.tactile #construction { width: calc(100vw - 24px); bottom: calc(150px + env(safe-area-inset-bottom)); }
       }
     </style>
   </head>
@@ -155,12 +211,27 @@
     <div id="hud"></div>
     <div id="message"></div>
     <div id="aide">
-      <span class="aide-pieton">↑ ↓ ← → (ou Z Q S D) marcher · Shift courir · Espace sauter · E monter dans l'avion</span>
+      <span class="aide-pieton">↑ ↓ ← → (ou Z Q S D) marcher · Shift courir · Espace sauter · E monter dans l'avion · B construire</span>
       <span class="aide-avion">↑ ↓ piquer / cabrer · ← → pencher · Gaz : 0 à 9 (ou Espace / Shift) · F freins / volets · E descendre</span>
     </div>
 
     <!-- Le bouton pour monter dans l'avion / en descendre -->
     <button id="bouton-action" hidden></button>
+
+    <!-- La construction : le bouton 🔨 et le panneau (choisir un bâtiment, puis le poser) -->
+    <button id="bouton-construire" hidden aria-label="Construire">🔨<span class="texte-ordinateur"> Construire (B)</span></button>
+    <div id="construction" hidden>
+      <div id="construction-choix">
+        <div class="construction-titre">🔨 Que veux-tu construire ? <button class="fermer" aria-label="Fermer">✖</button></div>
+        <div id="construction-liste"></div>
+      </div>
+      <div id="construction-placement" hidden>
+        <span id="construction-info"></span>
+        <button data-action="tourner">↻ Tourner</button>
+        <button data-action="poser">✔ Poser</button>
+        <button data-action="annuler">✖ Changer</button>
+      </div>
+    </div>
 
     <!-- Les commandes pour téléphone et tablette -->
     <div id="tactile">

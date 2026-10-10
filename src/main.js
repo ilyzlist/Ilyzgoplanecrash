@@ -15,6 +15,8 @@ import {
 import { creerAeroportEtVille, dansControlePasseport } from './batiments.js';
 import { creerAvion, kmh } from './plane.js';
 import { creerPieton } from './character.js';
+import { creerHabitants } from './habitants.js';
+import { creerConstructeur } from './construction.js';
 import { ouvrirMenu } from './menu.js';
 import { afficherTampon } from './passeport.js';
 import { mettreAJourHUD, afficherMessage } from './ui.js';
@@ -68,7 +70,12 @@ function demarrerPartie(choix) {
   const avion = creerAvion(scene, choix.avion, PLACE_AVION);
   const pieton = creerPieton(scene, choix.perso);
   pieton.placer(DEPART_PIETON.x, DEPART_PIETON.z, DEPART_PIETON.angle);
-  partie = { choix, avion, pieton, mode: 'pieton', passeportControle: false };
+  // Les autres personnages se promènent sur l'île
+  const habitants = creerHabitants(scene, choix.perso);
+  // Pour construire des maisons et des magasins
+  const constructeur = creerConstructeur(scene);
+  constructeur.setActif(true);
+  partie = { choix, avion, pieton, habitants, constructeur, mode: 'pieton', passeportControle: false };
   oublierDemandes();
 
   // La caméra se place directement derrière le personnage
@@ -91,6 +98,7 @@ function demarrerPartie(choix) {
 function embarquer() {
   const { avion, pieton, choix } = partie;
   partie.mode = 'avion';
+  partie.constructeur.setActif(false);
   pieton.montrer(false);
   oublierDemandes();
   afficherMessage(estTactile()
@@ -106,6 +114,7 @@ function debarquer() {
   pieton.placer(point.x, point.z, avion.etat.cap + Math.PI / 2);
   pieton.montrer(true);
   partie.mode = 'pieton';
+  partie.constructeur.setActif(true);
   oublierDemandes();
   afficherMessage(`${partie.choix.perso.nom} descend de l'avion 🚶`, 2);
 }
@@ -141,6 +150,8 @@ function tableauDeBord(but) {
     lignes.push(`<b>👦 ${choix.perso.nom}</b>`);
     lignes.push(`🛂 ${choix.passeport.nom}${partie.passeportControle ? ' ✔' : ''}`);
     if (but) lignes.push(`🎯 ${but.texte}`);
+    const constructions = partie.constructeur.nombre();
+    if (constructions > 0) lignes.push(`🔨 Constructions : ${constructions}`);
   } else {
     const e = avion.etat;
     const crans = Math.round(e.gaz * 10);
@@ -180,13 +191,14 @@ function boucle() {
 
   if (!partie) {
     // Pendant le menu : la caméra tourne lentement autour de l'île
-    const angle = temps * 0.06;
-    camera.position.set(ILE.x + Math.cos(angle) * 650, 240, ILE.z + Math.sin(angle) * 650);
+    const angle = temps * 0.05;
+    camera.position.set(ILE.x + Math.cos(angle) * 950, 360, ILE.z + Math.sin(angle) * 950);
     camera.lookAt(ILE.x, 20, ILE.z);
   } else {
-    const { avion, pieton } = partie;
+    const { avion, pieton, habitants, constructeur } = partie;
     const pilote = partie.mode === 'avion';
     avion.mettreAJour(dt, pilote);
+    habitants.mettreAJour(dt);
     let action = null; // le texte du bouton MONTER / DESCENDRE (ou null)
     let but = null;
 
@@ -200,6 +212,7 @@ function boucle() {
     } else {
       pieton.mettreAJour(dt);
       pieton.suivreCamera(camera, dt);
+      constructeur.mettreAJour(pieton);
       const p = pieton.etat.position;
 
       // Le contrôle des passeports : PAF, le tampon !
@@ -210,7 +223,7 @@ function boucle() {
 
       but = objectif();
       const pres = presDeLaPorte();
-      if (pres && partie.passeportControle) action = estTactile() ? '✈️ MONTER' : '✈️ Monter (E)';
+      if (pres && partie.passeportControle && !constructeur.estOuvert()) action = estTactile() ? '✈️ MONTER' : '✈️ Monter (E)';
       if (prendreAction()) {
         if (!pres) afficherMessage('Approche-toi de la porte de ton avion pour monter (suis la flèche jaune)', 3);
         else if (!partie.passeportControle) afficherMessage('Il faut d\'abord passer le contrôle des passeports 🛂 !', 3);

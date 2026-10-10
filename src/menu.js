@@ -119,9 +119,10 @@ export function ouvrirMenu() {
           ${htmlCouverture(p)}
           <div class="nom">${p.nom}</div>`);
       } else if (etape === 1) {
-        contenu.innerHTML = `<h2>👦 Choisis ton pilote</h2>` + cartes(PERSONNAGES, 'perso', (p) => `
+        contenu.innerHTML = `<h2>🧒 Choisis ton pilote</h2><div class="petites">` + cartes(PERSONNAGES, 'perso', (p) => `
           <img class="photo" src="${photos.perso[p.id]}" alt="">
-          <div class="nom">${p.nom}</div>`);
+          <div class="nom">${p.nom}</div>`) + `</div>
+          <p class="recap">Les autres se promèneront sur l'île !</p>`;
       } else if (etape === 2) {
         contenu.innerHTML = `<h2>✈️ Choisis ton avion</h2>` + cartes(AVIONS, 'avion', (a) => `
           <img class="photo" src="${photos.avion[a.id]}" alt="">

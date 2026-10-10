@@ -38,7 +38,10 @@ export const CONFIG = {
   nombreMaisons: 8,         // nombre de maisons dans le vieux village (30 au maximum)
   nombreMaisonsVille: 10,   // nombre de maisons à ILYZGO CITY
   nombreVoitures: 9,        // voitures garées sur le parking de l'aéroport
-  nombreArbres: 80,         // nombre d'arbres sur l'île
+  nombreArbres: 160,        // arbres éparpillés sur l'île
+  nombreArbresForet: 650,   // arbres dans la grande forêt d'ILYZGO
+  nomEcole: "ÉCOLE D'ILYZGO",
+  vitesseHabitants: 2.2,    // vitesse des autres personnages qui se promènent
   tailleMonde: 3000,        // taille de la mer
 
   // --- Les couleurs ---
@@ -106,7 +109,9 @@ export const AVIONS = [
 // ============================================================
 //  LES PERSONNAGES (des figurines)
 //  Tu peux changer leurs couleurs : t-shirt, short, peau, cheveux, chaussures…
-//  coiffure : 'pointes', 'casquette' ou 'boucles'
+//  coiffure : 'pointes', 'casquette', 'boucles', 'courts' ou 'longs'
+//  lunettes : true pour mettre des lunettes
+//  Les personnages qu'on ne choisit pas se promènent sur l'île.
 // ============================================================
 export const PERSONNAGES = [
   {
@@ -123,6 +128,32 @@ export const PERSONNAGES = [
     id: 'mayol', nom: 'Mayol',
     tshirt: '#ffbe0b', short: '#2a9d8f', peau: '#c68b59', cheveux: '#3b2414', chaussures: '#e63946',
     coiffure: 'boucles',
+  },
+  // --- Les 5 nouveaux (tu peux changer leurs prénoms ici !) ---
+  {
+    id: 'adam', nom: 'Adam',
+    tshirt: '#2a9d8f', short: '#264653', peau: '#f1c9a5', cheveux: '#2b1a0e', chaussures: '#ffffff',
+    coiffure: 'courts', lunettes: true,
+  },
+  {
+    id: 'noah', nom: 'Noah',
+    tshirt: '#8338ec', short: '#3d405b', peau: '#d9a066', cheveux: '#5a3a1e', chaussures: '#ffbe0b',
+    coiffure: 'pointes',
+  },
+  {
+    id: 'yanis', nom: 'Yanis',
+    tshirt: '#fb5607', short: '#1d3557', peau: '#c68b59', cheveux: '#111111', chaussures: '#ffffff',
+    coiffure: 'casquette', casquette: '#3a86ff',
+  },
+  {
+    id: 'leo', nom: 'Léo',
+    tshirt: '#06d6a0', short: '#6c757d', peau: '#f6d5b8', cheveux: '#e9c46a', chaussures: '#3a86ff',
+    coiffure: 'boucles',
+  },
+  {
+    id: 'ines', nom: 'Inès',
+    tshirt: '#ff70a6', short: '#5e60ce', peau: '#e8b98a', cheveux: '#3b2414', chaussures: '#ff70a6',
+    coiffure: 'longs',
   },
 ];
 

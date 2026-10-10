@@ -9,15 +9,16 @@ import { CONFIG } from './config.js';
 import {
   hauteurDuSol, ajouterObstacle, ajouterObstacleRectangle, creerHasard, creerMaison,
   matiere, lampe, texteEnImage, distanceAuRectangle,
-  AEROGARE, PARKING_VOITURES, ROUTE, VILLE,
+  AEROGARE, PARKING_VOITURES, ROUTE, VILLE, ECOLE, MONUMENT, FORET,
 } from './world.js';
+import { PERSONNAGES } from './config.js';
 import { creerFigurine } from './character.js';
 import { dessinerDrapeauIlyzgo, dessinerDrapeauEurope } from './drapeaux.js';
 
 const boite = (l, h, p, mat) => new THREE.Mesh(new THREE.BoxGeometry(l, h, p), mat);
 
 // Un panneau avec du texte (une image posée sur un plan)
-function panneau(texte, largeur, hauteur, options) {
+export function panneau(texte, largeur, hauteur, options) {
   const ratio = largeur / hauteur;
   const pixelsHauteur = 160;
   const image = texteEnImage(texte, {
@@ -378,6 +379,240 @@ function creerMaisonsVille(scene) {
   }
 }
 
+// ---------- L'école d'ILYZGO : le bâtiment, la cour, le terrain de foot, le panier de basket ----------
+function creerEcole(scene) {
+  const E = ECOLE;
+  const y = hauteurDuSol((E.x0 + E.x1) / 2, (E.z0 + E.z1) / 2);
+  const xMilieu = (E.x0 + E.x1) / 2;
+
+  // Le bâtiment, au nord de la cour, la façade tournée vers la cour (vers +z)
+  const largeur = 70;
+  const profondeur = 18;
+  const hauteur = 10;
+  const zBatiment = E.z0 + 4 + profondeur / 2;
+  const batiment = boite(largeur, hauteur, profondeur, matiere(0xffe08a));
+  batiment.position.set(xMilieu, y + hauteur / 2, zBatiment);
+  const toit = boite(largeur + 2, 0.8, profondeur + 2, matiere(0x3b7dd8));
+  toit.position.set(xMilieu, y + hauteur + 0.4, zBatiment);
+  scene.add(batiment, toit);
+  ajouterObstacleRectangle(xMilieu - largeur / 2, xMilieu + largeur / 2, zBatiment - profondeur / 2, zBatiment + profondeur / 2, y + hauteur + 1);
+
+  // Les fenêtres (deux étages) et la porte
+  const vitre = matiere(0x9fd8ff, { metalness: 0.3, roughness: 0.2 });
+  const facade = zBatiment + profondeur / 2 + 0.06;
+  for (const etage of [3, 7.2]) {
+    for (let i = 0; i < 10; i++) {
+      const x = xMilieu - largeur / 2 + 4 + i * 6.9;
+      if (etage === 3 && Math.abs(x - xMilieu) < 4) continue; // la place de la porte
+      const fenetre = boite(3.6, 2.4, 0.1, vitre);
+      fenetre.position.set(x, y + etage, facade);
+      scene.add(fenetre);
+    }
+  }
+  const porte = boite(4, 4, 0.12, matiere(0x8e5a3c));
+  porte.position.set(xMilieu, y + 2, facade);
+  scene.add(porte);
+
+  // Le nom de l'école et une horloge
+  const nom = panneau(CONFIG.nomEcole, 26, 2.6, { fond: '#e63946' });
+  nom.position.set(xMilieu, y + hauteur + 2.4, facade - 0.5);
+  const horloge = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.2, 20), matiere(0xffffff));
+  horloge.rotation.x = Math.PI / 2;
+  horloge.position.set(xMilieu, y + 5.2, facade + 0.1);
+  const aiguille = boite(0.15, 1.1, 0.05, matiere(0x111111));
+  aiguille.position.set(xMilieu, y + 5.6, facade + 0.25);
+  const aiguille2 = boite(0.8, 0.15, 0.05, matiere(0x111111));
+  aiguille2.position.set(xMilieu + 0.35, y + 5.2, facade + 0.25);
+  scene.add(nom, horloge, aiguille, aiguille2);
+
+  // Le terrain de foot dans la cour, avec ses lignes et ses cages
+  const zTerrain = (zBatiment + profondeur / 2 + E.z1) / 2 + 2;
+  const terrain = boite(52, 0.1, 34, matiere(0x4caf50));
+  terrain.position.set(xMilieu - 6, y + 0.02, zTerrain);
+  scene.add(terrain);
+  const blanc = matiere(0xffffff);
+  const ligne = (l, p, x, z) => {
+    const m = boite(l, 0.04, p, blanc);
+    m.position.set(x, y + 0.1, z);
+    scene.add(m);
+  };
+  ligne(52, 0.4, xMilieu - 6, zTerrain - 17);
+  ligne(52, 0.4, xMilieu - 6, zTerrain + 17);
+  ligne(0.4, 34, xMilieu - 32, zTerrain);
+  ligne(0.4, 34, xMilieu + 20, zTerrain);
+  ligne(0.4, 34, xMilieu - 6, zTerrain);
+  const rond = new THREE.Mesh(new THREE.RingGeometry(4.6, 5, 32), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  rond.rotation.x = -Math.PI / 2;
+  rond.position.set(xMilieu - 6, y + 0.12, zTerrain);
+  scene.add(rond);
+  for (const cote of [-1, 1]) {
+    const xBut = xMilieu - 6 + cote * 25.5;
+    const cage = new THREE.Group();
+    for (const dz of [-3.5, 3.5]) {
+      const poteau = boite(0.25, 2.4, 0.25, blanc);
+      poteau.position.set(0, 1.2, dz);
+      cage.add(poteau);
+    }
+    const barre = boite(0.25, 0.25, 7.2, blanc);
+    barre.position.y = 2.4;
+    cage.add(barre);
+    cage.position.set(xBut, y, zTerrain);
+    scene.add(cage);
+  }
+
+  // Le panier de basket
+  const xPanier = E.x1 - 6;
+  const poteauBasket = boite(0.3, 4.5, 0.3, matiere(0x555555));
+  poteauBasket.position.set(xPanier, y + 2.25, zTerrain);
+  const planche = boite(0.15, 1.6, 2.4, blanc);
+  planche.position.set(xPanier - 0.3, y + 4.2, zTerrain);
+  const cercle = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.05, 6, 16), matiere(0xff7b00));
+  cercle.rotation.x = Math.PI / 2;
+  cercle.position.set(xPanier - 0.9, y + 3.7, zTerrain);
+  scene.add(poteauBasket, planche, cercle);
+  ajouterObstacle(xPanier, zTerrain, 0.6, y + 4.5);
+
+  // Le drapeau d'ILYZGO devant l'école
+  const mat = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 12, 8), matiere(0xdddddd));
+  mat.position.set(E.x0 + 6, y + 6, zBatiment + profondeur / 2 + 4);
+  const drapeau = planImage(dessinerDrapeauIlyzgo(300, 200), 4.5, 3);
+  drapeau.position.set(E.x0 + 8.3, y + 10.4, zBatiment + profondeur / 2 + 4);
+  scene.add(mat, drapeau);
+
+  // La barrière autour de la cour (avec une entrée côté ville, à l'ouest)
+  const bois = matiere(0xffffff);
+  const zEntree = zTerrain;
+  const morceaux = [
+    [E.x0, E.x1, E.z1, E.z1],                     // sud
+    [E.x1, E.x1, zBatiment, E.z1],               // est
+    [E.x0, E.x0, zBatiment, zEntree - 4],        // ouest, avant l'entrée
+    [E.x0, E.x0, zEntree + 4, E.z1],             // ouest, après l'entrée
+  ];
+  for (const [x0, x1, z0, z1] of morceaux) {
+    const longueur = Math.max(x1 - x0, z1 - z0);
+    const barriere = boite(x1 - x0 + 0.2, 1.2, z1 - z0 + 0.2, bois);
+    barriere.position.set((x0 + x1) / 2, y + 0.6, (z0 + z1) / 2);
+    scene.add(barriere);
+    if (longueur > 0) ajouterObstacleRectangle(x0 - 0.3, x1 + 0.3, z0 - 0.3, z1 + 0.3, y + 1.3);
+  }
+}
+
+// ---------- Le monument : la statue géante d'Ilyas ----------
+function creerMonument(scene) {
+  const M = MONUMENT;
+  const y = hauteurDuSol(M.x, M.z);
+
+  // La place en pierre et un cercle de fleurs
+  const place = new THREE.Mesh(new THREE.CylinderGeometry(M.rayon, M.rayon, 0.1, 40), matiere(0xe0dccf));
+  place.position.set(M.x, y + 0.05, M.z);
+  scene.add(place);
+  const couleursFleurs = [0xff70a6, 0xffbe0b, 0xe63946, 0xffffff, 0x8338ec];
+  const geoFleur = new THREE.SphereGeometry(0.35, 6, 4);
+  for (let i = 0; i < 48; i++) {
+    const angle = (i / 48) * Math.PI * 2;
+    if (Math.abs(Math.sin(angle)) > 0.97) continue; // deux passages, au nord et au sud
+    const fleur = new THREE.Mesh(geoFleur, matiere(couleursFleurs[i % couleursFleurs.length]));
+    fleur.position.set(M.x + Math.cos(angle) * (M.rayon - 2.5), y + 0.4, M.z + Math.sin(angle) * (M.rayon - 2.5));
+    scene.add(fleur);
+  }
+
+  // Le socle avec la plaque
+  const pierre = matiere(0xbdb6a6);
+  const socle = boite(8, 4, 8, pierre);
+  socle.position.set(M.x, y + 2, M.z);
+  const haut = boite(6.5, 1, 6.5, pierre);
+  haut.position.set(M.x, y + 4.5, M.z);
+  scene.add(socle, haut);
+  const plaque = panneau('ILYAS · Héros d\'ILYZGO COUNTRY', 7, 1.4, { fond: '#16324f', couleur: '#e9c46a' });
+  plaque.position.set(M.x, y + 2.6, M.z + 4.02);
+  scene.add(plaque);
+
+  // La statue : la figurine d'Ilyas, en or et 6 fois plus grande, le bras levé
+  const ilyas = PERSONNAGES.find((p) => p.id === 'ilyas') ?? PERSONNAGES[0];
+  const statue = creerFigurine(ilyas);
+  const or = new THREE.MeshStandardMaterial({
+    color: 0xf2c14e, emissive: 0x4a3300, metalness: 0.25, roughness: 0.4, flatShading: true,
+  });
+  statue.traverse((objet) => { if (objet.isMesh) objet.material = or; });
+  statue.userData.bras[1].rotation.z = 2.6; // le bras droit levé vers le ciel
+  statue.scale.setScalar(6);
+  statue.position.set(M.x, y + 5, M.z);
+  statue.rotation.y = Math.PI; // il regarde vers le sud
+  scene.add(statue);
+  ajouterObstacle(M.x, M.z, 5.5, y + 5 + 2.7 * 6);
+
+  // Quatre lampadaires autour
+  for (let i = 0; i < 4; i++) {
+    const angle = Math.PI / 4 + (i * Math.PI) / 2;
+    const x = M.x + Math.cos(angle) * 12;
+    const z = M.z + Math.sin(angle) * 12;
+    const pied = boite(0.25, 5, 0.25, matiere(0x333333));
+    pied.position.set(x, y + 2.5, z);
+    const globe = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), lampe(0xfff3c4));
+    globe.position.set(x, y + 5.2, z);
+    scene.add(pied, globe);
+  }
+}
+
+// ---------- La forêt : la cabane du garde forestier, le feu de camp et le panneau ----------
+function creerCabaneForet(scene) {
+  const F = FORET;
+  const y = hauteurDuSol(F.x, F.z);
+  const cabane = new THREE.Group();
+  const rondins = boite(9, 4.5, 7, matiere(0x8b5a2b));
+  rondins.position.y = 2.25;
+  for (let i = 0; i < 5; i++) {
+    const rondin = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 9.2, 6), matiere(0x6b4226));
+    rondin.rotation.z = Math.PI / 2;
+    rondin.position.set(0, 0.45 + i * 0.9, 3.55);
+    cabane.add(rondin);
+  }
+  const geoToit = new THREE.ConeGeometry(1, 1, 4);
+  geoToit.rotateY(Math.PI / 4);
+  const toit = new THREE.Mesh(geoToit, matiere(0x3d2b1f));
+  toit.scale.set(8, 3.5, 6.4);
+  toit.position.y = 6.25;
+  const porte = boite(1.6, 2.8, 0.15, matiere(0x3d2b1f));
+  porte.position.set(0, 1.4, 3.62);
+  const cheminee = boite(1, 3, 1, matiere(0x777777));
+  cheminee.position.set(2.5, 6.5, -1);
+  cabane.add(rondins, toit, porte, cheminee);
+  cabane.position.set(F.x, y, F.z - 10);
+  scene.add(cabane);
+  ajouterObstacleRectangle(F.x - 4.5, F.x + 4.5, F.z - 13.5, F.z - 6.5, y + 8);
+
+  // Le feu de camp, entouré de pierres et de bancs en rondins
+  const flamme = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2, 8),
+    new THREE.MeshStandardMaterial({ color: 0xff8c1a, emissive: 0xff5500, emissiveIntensity: 1.5 }));
+  flamme.position.set(F.x, y + 1, F.z + 6);
+  scene.add(flamme);
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const caillou = boite(0.6, 0.4, 0.6, matiere(0x888888));
+    caillou.position.set(F.x + Math.cos(angle) * 1.5, y + 0.2, F.z + 6 + Math.sin(angle) * 1.5);
+    scene.add(caillou);
+  }
+  for (const angle of [0, Math.PI * 0.66, Math.PI * 1.33]) {
+    const banc = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3, 8), matiere(0x6b4226));
+    banc.rotation.z = Math.PI / 2;
+    banc.rotation.y = angle + Math.PI / 2;
+    banc.position.set(F.x + Math.cos(angle) * 4.5, y + 0.4, F.z + 6 + Math.sin(angle) * 4.5);
+    scene.add(banc);
+  }
+
+  // Le panneau à l'entrée de la forêt, côté aéroport
+  const direction = new THREE.Vector2(250 - F.x, -600 - F.z).normalize();
+  const x = F.x + direction.x * (F.rayon + 6);
+  const z = F.z + direction.y * (F.rayon + 6);
+  const sol = hauteurDuSol(x, z);
+  const nom = panneau("🌲 FORÊT D'ILYZGO", 10, 2.5, { fond: '#2d6a4f' });
+  const support = boite(0.3, 3.5, 0.3, matiere(0x6b4226));
+  support.position.set(x, sol + 1.75, z);
+  nom.position.set(x + direction.x * 0.2, sol + 4, z + direction.y * 0.2);
+  nom.rotation.y = Math.atan2(direction.x, direction.y);
+  scene.add(support, nom);
+}
+
 export function creerAeroportEtVille(scene) {
   creerAerogare(scene);
   creerParkingVoitures(scene);
@@ -385,4 +620,7 @@ export function creerAeroportEtVille(scene) {
   creerSupermarche(scene);
   creerFontaine(scene);
   creerMaisonsVille(scene);
+  creerEcole(scene);
+  creerMonument(scene);
+  creerCabaneForet(scene);
 }

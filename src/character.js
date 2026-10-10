@@ -123,10 +123,51 @@ export function creerFigurine(perso) {
     const sommet = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 6), cheveux);
     sommet.position.y = 2.5;
     figurine.add(sommet);
+  } else if (perso.coiffure === 'courts') {
+    // Des cheveux courts avec une petite frange
+    const frange = boite(0.64, 0.1, 0.12, cheveux);
+    frange.position.set(0, 2.28, -0.26);
+    figurine.add(frange);
+  } else if (perso.coiffure === 'longs') {
+    // Des cheveux longs qui tombent dans le dos et sur les côtés
+    const frange = boite(0.64, 0.12, 0.12, cheveux);
+    frange.position.set(0, 2.27, -0.26);
+    const dos = boite(0.66, 0.85, 0.14, cheveux);
+    dos.position.set(0, 1.85, 0.3);
+    figurine.add(frange, dos);
+    for (const cote of [-1, 1]) {
+      const meche = boite(0.1, 0.7, 0.5, cheveux);
+      meche.position.set(cote * 0.33, 1.95, 0.02);
+      figurine.add(meche);
+    }
+  }
+
+  // Les lunettes
+  if (perso.lunettes) {
+    const monture = matiere(0x222222);
+    for (const cote of [-1, 1]) {
+      const verre = boite(0.2, 0.16, 0.03, monture);
+      verre.position.set(cote * 0.14, 2.07, -0.31);
+      figurine.add(verre);
+    }
+    const pont = boite(0.1, 0.03, 0.03, monture);
+    pont.position.set(0, 2.1, -0.31);
+    figurine.add(pont);
   }
 
   figurine.userData = { jambes, bras };
   return figurine;
+}
+
+// Balance les bras et les jambes d'une figurine qui marche.
+// pas = où on en est dans la marche, amplitude = 0 (immobile) à 1 (grands pas)
+export function animerMarche(figurine, pas, amplitude) {
+  const [jambeG, jambeD] = figurine.userData.jambes;
+  const [brasG, brasD] = figurine.userData.bras;
+  jambeG.rotation.x = Math.sin(pas) * amplitude;
+  jambeD.rotation.x = -Math.sin(pas) * amplitude;
+  brasG.rotation.x = -Math.sin(pas) * amplitude;
+  brasD.rotation.x = Math.sin(pas) * amplitude;
 }
 
 // ---------- Le personnage qu'on contrôle à pied ----------
@@ -191,12 +232,8 @@ export function creerPieton(scene, perso) {
     // Balancer les bras et les jambes en marchant
     pas += Math.abs(etat.vitesse) * dt * 2.2;
     const amplitude = Math.min(Math.abs(etat.vitesse) / CONFIG.vitesseMarche, 1.3) * 0.7;
-    const [jambeG, jambeD] = modele.userData.jambes;
+    animerMarche(modele, pas, amplitude);
     const [brasG, brasD] = modele.userData.bras;
-    jambeG.rotation.x = Math.sin(pas) * amplitude;
-    jambeD.rotation.x = -Math.sin(pas) * amplitude;
-    brasG.rotation.x = -Math.sin(pas) * amplitude;
-    brasD.rotation.x = Math.sin(pas) * amplitude;
     if (!etat.auSol) { brasG.rotation.z = -0.6; brasD.rotation.z = 0.6; } // les bras en l'air !
     else { brasG.rotation.z = 0; brasD.rotation.z = 0; }
 
