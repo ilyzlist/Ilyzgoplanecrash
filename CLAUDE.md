@@ -25,25 +25,40 @@ Jeu de vol en 3D dans le navigateur. On pilote un petit avion au-dessus d'un arc
 
 ---
 
+## Début de partie (déjà en place)
+1. **Menu** (`src/menu.js`) : on choisit son **passeport** (européen ou ILYZGO), son **pilote** et son **avion**, puis on voit son passeport avec sa photo.
+2. On arrive **à pied** devant l'aérogare de l'Aéroport international d'ILYZGO et on passe le **contrôle des passeports** (tampon d'entrée). C'est obligatoire avant de monter dans un avion.
+3. On marche jusqu'à son avion garé sur le parking des avions (une flèche jaune montre où aller), on **monte** (E ou bouton MONTER), on roule jusqu'à la piste et on décolle.
+4. Une fois arrêté au sol, on peut **descendre** (E ou bouton DESCENDRE) et se promener.
+**Un avion sans pilote ne peut pas décoller** : gaz à 0 et freins serrés.
+
+**Les noms (attention à l'orthographe !)** :
+- Pays / île : **ILYZGO COUNTRY** · ville : **ILYZGO CITY** · supermarché : **ILYZGO MARKET**
+- Pilotes (que des garçons) : **Ilyas** (I-L-Y-A-S), **Lucas**, **Mayol** — à ne pas confondre avec ILYZGO (I-L-Y-Z-G-O)
+- Avions : **ILYZGO AIR** (petit avion à hélice), **ILYZGO AIR EXPRESS** (supersonique façon Concorde), **ILYZGO AIR PASSENGERS** (géant façon Boeing 747)
+- Les avions, pilotes et passeports se règlent dans `config.js` (listes `AVIONS`, `PERSONNAGES`, `PASSEPORTS`).
+
 ## Contrôles (clavier)
-| Touche | Action |
-|---|---|
-| ↑ / ↓ | Piquer / cabrer (↓ sur la piste = décoller) |
-| ← / → | Pencher pour tourner (au sol : tourner) |
-| 0 à 9 | Régler les gaz directement (0 = coupé, 9 = 90 %) |
-| Espace / Shift | Plus / moins de gaz, petit à petit |
-| F | Freins au sol, volets en vol |
-| M | Ouvrir le carnet de bord |
+| Touche | En avion | À pied |
+|---|---|---|
+| ↑ / ↓ | Piquer / cabrer (↓ sur la piste = décoller) | Avancer / reculer (aussi Z / S) |
+| ← / → | Pencher pour tourner (au sol : tourner) | Tourner (aussi Q / D) |
+| 0 à 9 | Régler les gaz directement (0 = coupé, 9 = 90 %) | — |
+| Espace | Plus de gaz | Sauter |
+| Shift | Moins de gaz | Courir |
+| F | Freins au sol, volets en vol | — |
+| E | Descendre de l'avion (arrêté au sol) | Monter dans l'avion (près de la porte) |
+| M | Ouvrir le carnet de bord (à faire) | |
 
-**Sur téléphone et tablette** (`src/touch.js`) : un manche à gauche (piquer / monter / pencher), une manette des gaz à droite, un bouton FREIN (VOLETS en vol). Les commandes sont semi-transparentes et ne doivent jamais cacher le jeu. Le clavier doit toujours marcher en même temps.
+**Sur téléphone et tablette** (`src/touch.js`) : un manche à gauche (en avion : piquer / monter / pencher ; à pied : marcher), une manette des gaz et un bouton FREIN (VOLETS en vol) à droite en avion, un bouton SAUT à pied, et un bouton MONTER / DESCENDRE au milieu quand c'est possible. Les commandes sont semi-transparentes et **ne doivent jamais se chevaucher ni cacher le jeu** (vérifier en paysage ET en portrait). Le clavier doit toujours marcher en même temps.
 
-L'île s'appelle **ILYZGO COUNTRY** (panneau de bienvenue près de la piste + grosses lettres sur la montagne).
+L'île s'appelle **ILYZGO COUNTRY** (panneau de bienvenue près de la piste + grosses lettres sur la montagne). À côté de l'aéroport il y a **ILYZGO CITY** (supermarché ILYZGO MARKET, maisons, fontaine), le parking des voitures et la route.
 
-L'avion du joueur s'appelle **ILYZGO AIR** (nom peint sur le fuselage, réglable dans `config.js`). Les vitesses s'affichent en km/h (vitesse du jeu × 3,6).
+Les vitesses s'affichent en km/h (vitesse du jeu × 3,6).
 
 La physique est **un peu réaliste mais sans danger** : on tourne en penchant l'avion, Espace/Shift règlent une manette des gaz (qui reste en place), la gravité et la portance comptent, et l'avion peut décrocher s'il est trop lent. Mais il ne peut jamais s'écraser : s'il touche le sol ou l'eau ailleurs que sur la piste, il rebondit doucement vers le haut.
 
-**Atterrissage** : sur la piste de l'île, si on arrive assez lentement et à plat, l'avion se pose, roule, freine (Shift) et peut redécoller (gaz + ↓).
+**Atterrissage** : sur la piste de l'île, si on arrive assez lentement et à plat, l'avion se pose, roule, freine (F) et peut redécoller (gaz + ↓).
 
 ---
 
@@ -56,9 +71,17 @@ La physique est **un peu réaliste mais sans danger** : on tourne en penchant l'
 ### Structure proposée
 ```
 src/
-  main.js        // scène, boucle de jeu, gestion des phases
-  plane.js       // modèle de l'avion + contrôles + caméra qui suit
-  world.js       // mer, îles (bruit simple), nuages
+  main.js        // scène, boucle de jeu, gestion des phases (à pied / en avion)
+  config.js      // tous les réglages + listes des avions, pilotes, passeports
+  menu.js        // écran de départ (passeport, pilote, avion) + menu.css
+  passeport.js   // passeports et tampon d'entrée ; drapeaux.js : drapeaux ILYZGO / Europe
+  controls.js    // clavier + tactile réunis
+  touch.js       // commandes sur l'écran (téléphone / tablette)
+  plane.js       // vol de l'avion + caméra qui suit
+  modeles-avions.js // modèles 3D des 3 avions (+ escalier des gros avions)
+  character.js   // figurines des pilotes, marche, saut
+  world.js       // mer, île, piste, village, arbres, panneaux
+  batiments.js   // aérogare, contrôle des passeports, parking, route, ILYZGO CITY
   wind.js        // courants de vent (particules + zone de boost)
   rings.js       // anneaux de la phase 1
   debris.js      // débris, boîte noire, détection de proximité

@@ -1,0 +1,166 @@
+/* ============================================================
+   L'ÉCRAN DE DÉPART ET LES PASSEPORTS
+   ============================================================ */
+
+/* ---------- Le menu ---------- */
+.menu {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  color: #fff; font-family: system-ui, sans-serif;
+  background: linear-gradient(180deg, rgba(15, 94, 156, .80), rgba(10, 35, 70, .92));
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.menu-entete { flex: none; text-align: center; padding: 14px 12px 4px; }
+.menu-logo {
+  font: 900 clamp(24px, 5vw, 40px) "Arial Black", system-ui, sans-serif;
+  letter-spacing: 1px; text-shadow: 0 3px 0 #e63946;
+}
+.menu-sous-titre { opacity: .85; font-size: clamp(12px, 2.5vw, 15px); margin-top: 2px; }
+.etapes { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 10px 0 0; }
+.etapes li { font-size: 12px; padding: 4px 10px; border-radius: 99px; background: rgba(255, 255, 255, .14); }
+.etapes li.faite { background: rgba(255, 255, 255, .35); }
+.etapes li.active { background: #ffbe0b; color: #16324f; font-weight: 800; }
+
+.menu-contenu {
+  flex: 1; overflow-y: auto; padding: 8px 14px 18px;
+  touch-action: pan-y; -webkit-overflow-scrolling: touch;
+}
+.menu-contenu h2 { text-align: center; margin: 8px 0 14px; font-size: clamp(18px, 4vw, 26px); }
+
+.cartes { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+.carte {
+  flex: 0 1 230px; padding: 12px; border-radius: 18px; cursor: pointer;
+  background: rgba(255, 255, 255, .12); border: 3px solid transparent;
+  color: inherit; font: inherit; text-align: center;
+  transition: transform .15s, background .15s;
+}
+.carte:hover { transform: translateY(-3px); background: rgba(255, 255, 255, .18); }
+.carte.choisie {
+  border-color: #ffbe0b; background: rgba(255, 255, 255, .24);
+  box-shadow: 0 0 0 4px rgba(255, 190, 11, .25);
+}
+.carte img.photo { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; display: block; }
+.carte .nom { font-weight: 800; font-size: 18px; margin-top: 6px; }
+.carte .desc { font-size: 13px; opacity: .9; margin-top: 4px; line-height: 1.35; }
+.carte .etoiles {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 8px;
+  font-size: 13px; margin-top: 8px; text-align: left;
+}
+.carte .etoiles b { color: #ffbe0b; letter-spacing: 1px; font-weight: normal; }
+
+.recap { text-align: center; margin: 14px 0 0; font-size: 15px; }
+
+.menu-barre {
+  flex: none; display: flex; gap: 10px; padding: 10px 14px;
+  background: rgba(0, 0, 0, .22);
+}
+.menu-barre button {
+  font: 800 16px system-ui, sans-serif; padding: 12px 22px;
+  border-radius: 14px; border: none; cursor: pointer;
+}
+.menu-barre .suivant { margin-left: auto; background: #ffbe0b; color: #16324f; }
+.menu-barre .retour { background: rgba(255, 255, 255, .18); color: #fff; }
+.menu-barre .retour[hidden] { display: none; }
+
+/* Téléphone tenu à l'horizontale : tout est plus compact */
+@media (max-height: 500px) {
+  .menu-entete { padding: 6px 10px 0; display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .menu-logo { font-size: 20px; text-shadow: 0 2px 0 #e63946; }
+  .menu-sous-titre { display: none; }
+  .etapes { margin: 0; }
+  .etapes li { font-size: 11px; padding: 3px 8px; }
+  .menu-contenu { padding-top: 2px; }
+  .menu-contenu h2 { margin: 2px 0 6px; font-size: 16px; }
+  .cartes { gap: 10px; }
+  .carte { flex-basis: 190px; padding: 6px 8px; border-radius: 14px; }
+  .carte img.photo { height: 78px; aspect-ratio: auto; }
+  .carte .nom { font-size: 14px; margin-top: 2px; }
+  .carte .desc { display: none; }
+  .carte .etoiles { font-size: 11px; margin-top: 4px; gap: 0 6px; }
+  .menu-barre { padding: 6px 12px; }
+  .menu-barre button { padding: 8px 18px; font-size: 15px; }
+}
+/* Téléphone tenu en hauteur : deux cartes par ligne */
+@media (max-width: 520px) {
+  .carte { flex-basis: calc(50% - 8px); padding: 8px; }
+  .carte .nom { font-size: 15px; }
+  .carte .desc { font-size: 12px; }
+}
+
+/* ---------- La couverture du passeport ---------- */
+.passeport-couverture {
+  width: 150px; aspect-ratio: 0.7; margin: 0 auto; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 14px 8px; border-radius: 8px 14px 14px 8px;
+  background: var(--couleur); color: #e9c46a; font-family: Georgia, serif; text-align: center;
+  box-shadow: inset 7px 0 0 rgba(0, 0, 0, .25), 0 6px 16px rgba(0, 0, 0, .35);
+}
+.pc-pays { font-size: 11px; font-weight: bold; letter-spacing: 1px; }
+.pc-embleme { width: 72px; height: 72px; object-fit: cover; }
+.pc-embleme.ilyzgo { border-radius: 50%; border: 3px solid #e9c46a; }
+.pc-titre { font-size: 14px; font-weight: bold; letter-spacing: 3px; }
+.pc-puce { width: 24px; height: 15px; border: 2px solid #e9c46a; border-radius: 4px; }
+@media (max-height: 500px) {
+  .passeport-couverture { width: 110px; padding: 8px 6px; }
+  .pc-embleme { width: 50px; height: 50px; }
+}
+
+/* ---------- La page d'identité ---------- */
+.passeport-page {
+  position: relative; width: min(440px, 100%); margin: 0 auto; box-sizing: border-box;
+  border-radius: 12px; overflow: hidden; color: #1d2b3a; text-align: left;
+  background: repeating-linear-gradient(45deg, #fdf6e3 0 10px, #f8efd6 10px 20px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+}
+.pp-entete {
+  display: flex; justify-content: space-between; padding: 8px 12px;
+  color: #e9c46a; font: bold 12px Georgia, serif; letter-spacing: 1px;
+}
+.pp-corps { display: flex; gap: 14px; padding: 12px; align-items: center; }
+.pp-photo {
+  width: 96px; height: 120px; object-fit: cover; flex: none;
+  background: #dbe9f6; border-radius: 6px; border: 2px solid #fff;
+}
+.pp-infos { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 13px; }
+.pp-infos dt { color: #6b7785; font-size: 11px; align-self: center; }
+.pp-infos dd { margin: 0; font-weight: 800; }
+.pp-bande {
+  font: 12px/1.3 "Courier New", monospace; padding: 6px 12px 10px; color: #445;
+  white-space: nowrap; overflow: hidden; letter-spacing: 1px;
+}
+@media (max-height: 500px) {
+  .pp-corps { padding: 8px 12px; }
+  .pp-photo { width: 70px; height: 88px; }
+}
+
+/* ---------- Le tampon au contrôle des passeports ---------- */
+#tampon {
+  position: fixed; inset: 0; z-index: 40; padding: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .4); font-family: system-ui, sans-serif;
+  animation: apparaitre .25s ease-out;
+}
+.tampon-boite { width: min(460px, 100%); text-align: center; color: #fff; }
+.tampon-titre { font-weight: 800; font-size: 18px; margin-bottom: 10px; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.tampon-message {
+  margin-top: 12px; font-size: 17px; font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
+}
+.tampon-aide { margin-top: 6px; font-size: 12px; opacity: .8; }
+.pp-tampons { position: absolute; right: 6%; bottom: 14%; pointer-events: none; }
+.tampon-rouge {
+  width: 118px; height: 118px; border-radius: 50%; box-sizing: border-box;
+  border: 4px double #c1121f; color: #c1121f;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  font: 800 10px system-ui, sans-serif; text-align: center;
+  opacity: 0; transform: rotate(-14deg) scale(2.6);
+  animation: tamponner .4s .6s forwards cubic-bezier(.2, 1.6, .4, 1);
+}
+.tampon-rouge b { font-size: 13px; }
+@keyframes tamponner { to { opacity: .9; transform: rotate(-14deg) scale(1); } }
+@keyframes apparaitre { from { opacity: 0; } }
+@media (max-height: 500px) {
+  .tampon-titre { font-size: 15px; margin-bottom: 4px; }
+  .tampon-message { font-size: 14px; margin-top: 6px; }
+  .tampon-rouge { width: 90px; height: 90px; font-size: 8px; }
+}

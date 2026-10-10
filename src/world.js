@@ -20,27 +20,44 @@ export const TOUR = { x: 75, z: -470 };
 // Le grand panneau de bienvenue, à gauche du début de la piste
 const PANNEAU = { x: -80, z: -320 };
 
+// L'aérogare (le bâtiment des passagers), avec un passage au milieu pour le contrôle des passeports
+export const AEROGARE = { x0: 172, x1: 205, z0: -590, z1: -490, passageZ0: -546, passageZ1: -534 };
+// Le parking des voitures, derrière l'aérogare
+export const PARKING_VOITURES = { x0: 214, x1: 262, z0: -590, z1: -497 };
+// La route qui va du parking jusqu'à ILYZGO CITY
+export const ROUTE = { x0: 230, x1: 240, z0: -497, z1: -390 };
+// ILYZGO CITY : le nouveau quartier avec le supermarché
+export const VILLE = { x: 205, z: -330, rayon: 85 };
+// Où l'avion du joueur est garé au début, et où le personnage arrive
+export const PLACE_AVION = { x: 125, z: -540, cap: Math.PI / 2 };      // le nez tourné vers la piste
+export const DEPART_PIETON = { x: 245, z: -540, angle: Math.PI / 2 };  // devant l'aérogare, côté parking
+
 // Les zones où le terrain est tout plat
 const ZONE_PISTE = {
   x0: PISTE.x - PISTE.largeur / 2, x1: PISTE.x + PISTE.largeur / 2,
   z0: PISTE.z - PISTE.longueur / 2, z1: PISTE.z + PISTE.longueur / 2,
 };
-const ZONE_AEROPORT = { x0: 20, x1: 175, z0: -645, z1: -455 };
+const ZONE_AEROPORT = { x0: 20, x1: 268, z0: -645, z1: -440 };
 
 // Le seuil de la piste 36 (là où elle commence quand on arrive du sud)
 const SEUIL_SUD = PISTE.z + PISTE.longueur / 2;
 // Les lumières PAPI sont à côté du point où l'on doit toucher la piste
 const PAPI_Z = SEUIL_SUD - 140;
 
-// Les obstacles (maisons, tour, hangar…) : l'avion rebondit dessus
+// Les obstacles (maisons, tour, hangar…) : l'avion rebondit dessus, le personnage ne passe pas à travers
 const OBSTACLES = [];
+// Un obstacle rond
 export function ajouterObstacle(x, z, rayon, sommet) {
   OBSTACLES.push({ x, z, rayon, sommet });
+}
+// Un obstacle rectangulaire (pour les grands bâtiments)
+export function ajouterObstacleRectangle(x0, x1, z0, z1, sommet) {
+  OBSTACLES.push({ rectangle: { x0, x1, z0, z1 }, sommet });
 }
 
 // Un "hasard" qui donne toujours les mêmes nombres :
 // le village et les arbres sont au même endroit à chaque partie.
-function creerHasard(graine) {
+export function creerHasard(graine) {
   return function () {
     graine = (graine + 0x6d2b79f5) | 0;
     let t = Math.imul(graine ^ (graine >>> 15), 1 | graine);
@@ -50,7 +67,7 @@ function creerHasard(graine) {
 }
 
 // Distance entre un point et un rectangle (0 = on est dedans)
-function distanceAuRectangle(x, z, r) {
+export function distanceAuRectangle(x, z, r) {
   const dx = Math.max(r.x0 - x, 0, x - r.x1);
   const dz = Math.max(r.z0 - z, 0, z - r.z1);
   return Math.hypot(dx, dz);
@@ -82,11 +99,13 @@ export function hauteurDuSol(x, z) {
     h += c * c * MONTAGNE.hauteur + Math.sin(x * 0.15) * Math.cos(z * 0.13) * 4 * c;
   }
 
-  // 3) On aplatit le terrain autour de la piste, de l'aéroport et du village
+  // 3) On aplatit le terrain autour de la piste, de l'aéroport, du village et de la ville
   const plat = Math.max(
     1 - transition(distanceAuRectangle(x, z, ZONE_PISTE), 0, 30),
     1 - transition(distanceAuRectangle(x, z, ZONE_AEROPORT), 0, 30),
-    1 - transition(Math.max(Math.hypot(x - VILLAGE.x, z - VILLAGE.z) - VILLAGE.rayon, 0), 0, 30)
+    1 - transition(distanceAuRectangle(x, z, ROUTE), 0, 30),
+    1 - transition(Math.max(Math.hypot(x - VILLAGE.x, z - VILLAGE.z) - VILLAGE.rayon, 0), 0, 30),
+    1 - transition(Math.max(Math.hypot(x - VILLE.x, z - VILLE.z) - VILLE.rayon, 0), 0, 30)
   );
   return h + (ILE.hauteurPlateau - h) * plat;
 }
@@ -95,7 +114,10 @@ export function hauteurDuSol(x, z) {
 export function hauteurDesObstacles(x, z) {
   let sommet = 0;
   for (const o of OBSTACLES) {
-    if (Math.hypot(x - o.x, z - o.z) < o.rayon) sommet = Math.max(sommet, o.sommet);
+    const dedans = o.rectangle
+      ? distanceAuRectangle(x, z, o.rectangle) === 0
+      : Math.hypot(x - o.x, z - o.z) < o.rayon;
+    if (dedans) sommet = Math.max(sommet, o.sommet);
   }
   return sommet;
 }
@@ -112,15 +134,15 @@ export function lumieresPAPI(x, yRoues, z) {
 }
 
 // Petit raccourci pour fabriquer une matière "low-poly"
-function matiere(couleur, extra = {}) {
+export function matiere(couleur, extra = {}) {
   return new THREE.MeshStandardMaterial({ color: couleur, flatShading: true, ...extra });
 }
-function lampe(couleur) {
+export function lampe(couleur) {
   return new THREE.MeshStandardMaterial({ color: couleur, emissive: couleur, emissiveIntensity: 1.2 });
 }
 
 // Écrit un texte dans une image (pour les numéros de piste et les panneaux)
-function texteEnImage(texte, { largeur = 512, hauteur = 512, fond = null, couleur = '#ffffff', police = 'bold 360px Arial' } = {}) {
+export function texteEnImage(texte, { largeur = 512, hauteur = 512, fond = null, couleur = '#ffffff', police = 'bold 360px Arial' } = {}) {
   const canvas = document.createElement('canvas');
   canvas.width = largeur;
   canvas.height = hauteur;
@@ -325,7 +347,7 @@ function creerAeroport() {
   interieur.position.z = longueur / 2 - 1.5;
   const panneau = new THREE.Mesh(
     new THREE.PlaneGeometry(16, 3.2),
-    new THREE.MeshStandardMaterial({ map: texteEnImage(CONFIG.nomAvion, { largeur: 1024, hauteur: 200, fond: '#1d4ed8', police: 'bold 130px Arial' }) })
+    new THREE.MeshStandardMaterial({ map: texteEnImage('ILYZGO AIR', { largeur: 1024, hauteur: 200, fond: '#1d4ed8', police: 'bold 130px Arial' }) })
   );
   panneau.position.set(0, 11.5, longueur / 2 + 0.05);
   hangar.add(toit, fond, interieur, panneau);
@@ -477,7 +499,7 @@ function creerLettresMontagne(scene) {
 }
 
 // ---------- Une maison ----------
-function creerMaison(hasard) {
+export function creerMaison(hasard) {
   const groupe = new THREE.Group();
   const largeur = 9 + hasard() * 5;
   const profondeur = 7 + hasard() * 4;
@@ -560,6 +582,8 @@ function creerArbres(scene) {
     if (Math.abs(x - PISTE.x) < 30 && z > SEUIL_SUD) continue; // la rampe d'approche
     if (Math.hypot(x - VILLAGE.x, z - VILLAGE.z) < VILLAGE.rayon + 8) continue;
     if (Math.hypot(x - PANNEAU.x, z - PANNEAU.z) < 30) continue;
+    if (Math.hypot(x - VILLE.x, z - VILLE.z) < VILLE.rayon + 8) continue;
+    if (distanceAuRectangle(x, z, ROUTE) < 10) continue;
 
     const arbre = new THREE.Group();
     const tronc = new THREE.Mesh(geoTronc, matTronc);
@@ -604,7 +628,7 @@ export function creerMonde(scene) {
 // Appelé à chaque image : allume les lumières PAPI selon la hauteur de l'avion
 export function mettreAJourMonde(etatAvion) {
   const p = etatAvion.position;
-  const blanches = lumieresPAPI(p.x, p.y - CONFIG.hauteurRoues, p.z) ?? [false, false, false, false];
+  const blanches = lumieresPAPI(p.x, p.y - etatAvion.hauteurRoues, p.z) ?? [false, false, false, false];
   ampoulesPAPI.forEach((ampoule, i) => {
     const couleur = blanches[i] ? 0xffffff : 0xff2020;
     ampoule.material.color.setHex(couleur);
